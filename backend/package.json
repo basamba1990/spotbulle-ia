@@ -1,0 +1,44 @@
+{
+  "name": "spotbulle-backend",
+  "version": "1.0.0",
+  "description": "Backend API pour SpotBulle - plateforme de partage vidéo",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.11.3",
+    "sequelize": "^6.35.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "express-validator": "^7.0.1",
+    "express-rate-limit": "^7.1.5",
+    "compression": "^1.7.4",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "video",
+    "sharing",
+    "events",
+    "community"
+  ],
+  "author": "SpotBulle Team",
+  "license": "MIT"
+}
+
