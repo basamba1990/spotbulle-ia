@@ -33,78 +33,84 @@ const setupAssociations = () => {
   // Event associations
   Event.belongsTo(User, { foreignKey: 'organisateur_id', as: 'organisateur' });
   Event.hasMany(Participation, { foreignKey: 'evenement_id', as: 'participations' });
+  Event.hasMany(Video, { foreignKey: 'evenement_id', as: 'videos' });
 
   // Video associations
   Video.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-  Video.hasOne(Participation, { foreignKey: 'video_id', as: 'participation' });
+  Video.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement' });
+  Video.belongsTo(Participation, { foreignKey: 'participation_id', as: 'participation' });
 
   // Participation associations
   Participation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   Participation.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement' });
-  Participation.belongsTo(Video, { foreignKey: 'video_id', as: 'video' });
+  Participation.hasMany(Video, { foreignKey: 'participation_id', as: 'videos' });
 };
 
 // Configuration du rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limite chaque IP à 100 requêtes par windowMs
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limite chaque IP à 100 requêtes par windowMs
   message: {
-    success: false,
-    message: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false
+    error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
+  }
 });
 
-// Configuration CORS
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Permettre les requêtes sans origine (mobile apps, etc.)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:3000',
-      'http://localhost:3001'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Non autorisé par CORS'));
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-
-// Middlewares globaux
+// Middlewares de sécurité et configuration
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
 }));
-app.use(cors(corsOptions));
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || ['http://localhost:3000', 'https://spotbulle.vercel.app'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(compression());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(limiter);
 
-// Logging en développement
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
+// Middlewares pour le parsing
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Rate limiting
-app.use('/api/', limiter);
-
-// Routes de santé
+// Route de santé (ne nécessite pas de DB)
 app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'SpotBulle API est opérationnelle',
+  res.status(200).json({
+    status: 'OK',
+    message: 'Serveur SpotBulle opérationnel',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+// Route de test de base de données
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const { sequelize } = require('./config/db');
+    await sequelize.authenticate();
+    res.status(200).json({
+      status: 'OK',
+      message: 'Base de données connectée',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Erreur de connexion à la base de données',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Routes API
@@ -116,11 +122,10 @@ app.use('/api/videos', videoRoutes);
 // Route par défaut
 app.get('/', (req, res) => {
   res.json({
-    success: true,
-    message: 'Bienvenue sur l\'API SpotBulle',
+    message: 'API SpotBulle - Plateforme de partage vidéo',
     version: '1.0.0',
-    documentation: '/api/docs',
     endpoints: {
+      health: '/health',
       auth: '/api/auth',
       users: '/api/users',
       events: '/api/events',
@@ -129,7 +134,20 @@ app.get('/', (req, res) => {
   });
 });
 
-// Middleware de gestion des erreurs 404
+// Middleware de gestion d'erreurs
+app.use((err, req, res, next) => {
+  console.error('❌ Erreur serveur:', err);
+  
+  res.status(err.status || 500).json({
+    success: false,
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Erreur interne du serveur' 
+      : err.message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// Middleware pour les routes non trouvées
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
@@ -138,63 +156,20 @@ app.use('*', (req, res) => {
   });
 });
 
-// Middleware de gestion des erreurs globales
-app.use((error, req, res, next) => {
-  console.error('Erreur serveur:', error);
-
-  // Erreur de validation Sequelize
-  if (error.name === 'SequelizeValidationError') {
-    return res.status(400).json({
-      success: false,
-      message: 'Erreur de validation',
-      errors: error.errors.map(err => ({
-        field: err.path,
-        message: err.message
-      }))
-    });
-  }
-
-  // Erreur de contrainte unique Sequelize
-  if (error.name === 'SequelizeUniqueConstraintError') {
-    return res.status(400).json({
-      success: false,
-      message: 'Violation de contrainte unique',
-      field: error.errors[0]?.path
-    });
-  }
-
-  // Erreur CORS
-  if (error.message === 'Non autorisé par CORS') {
-    return res.status(403).json({
-      success: false,
-      message: 'Origine non autorisée par CORS'
-    });
-  }
-
-  // Erreur générique
-  res.status(500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Erreur interne du serveur' 
-      : error.message
-  });
-});
-
 // Fonction de démarrage du serveur
 const startServer = async () => {
   try {
-    // Connexion à la base de données
-    await connectDB();
-    
-    // Configuration des associations
+    // Établir les associations entre modèles
     setupAssociations();
     
-    // Démarrage du serveur
+    // Connecter à la base de données (en mode dégradé si échec en production)
+    await connectDB();
+    
+    // Démarrer le serveur
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Serveur SpotBulle démarré sur le port ${PORT}`);
       console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`📡 API disponible sur: http://localhost:${PORT}`);
-      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+      console.log(`📡 Health check: http://localhost:${PORT}/health`);
     });
   } catch (error) {
     console.error('❌ Erreur lors du démarrage du serveur:', error);
@@ -213,19 +188,6 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Gestion des erreurs non capturées
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Promesse rejetée non gérée:', reason);
-  process.exit(1);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('❌ Exception non capturée:', error);
-  process.exit(1);
-});
-
 // Démarrer le serveur
 startServer();
-
-module.exports = app;
 
