@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: spotbulle-frontend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://spotbulle-ia.onrender.com
+
+

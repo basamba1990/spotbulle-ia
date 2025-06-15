@@ -1,19 +1,19 @@
-/** @type {import('next').NextConfig} */
+/** @type {import(\'next\').NextConfig} */
 const nextConfig = {
   images: {
     domains: [
-      'localhost',
-      'your-project.supabase.co',
-      'supabase.co',
-      'avatars.githubusercontent.com',
-      'lh3.googleusercontent.com'
+      \'localhost\',
+      \'your-project.supabase.co\',
+      \'supabase.co\',
+      \'avatars.githubusercontent.com\',
+      \'lh3.googleusercontent.com\'
     ],
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '**.supabase.co',
-        port: '',
-        pathname: '/storage/v1/object/public/**',
+        protocol: \'https\',
+        hostname: \'**.supabase.co\',
+        port: \'\',
+        pathname: \'/storage/v1/object/public/**\',
       },
     ],
   },
@@ -25,8 +25,8 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/:path*`,
+        source: \'/api/:path*\',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || \'http://localhost:5000\'}/api/:path*`,
       },
     ];
   },
@@ -44,4 +44,5 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
 
