@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: spotbulle-frontend
+    name: spotbulle-ia-intelligent
     env: node
     buildCommand: npm install
     startCommand: npm start
