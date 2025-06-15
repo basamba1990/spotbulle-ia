@@ -1,5 +1,5 @@
 {
-  "name": "spotbulle-backend",
+  "name": "spotbulle-ia",
   "version": "1.0.0",
   "description": "Backend API pour SpotBulle",
   "main": "src/server.js",
