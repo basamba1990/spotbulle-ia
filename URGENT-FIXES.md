@@ -34,7 +34,7 @@ react-scripts: command not found
 
 #### **A. Créer la base de données AVANT le service**
 1. Render Dashboard → "New +" → **"PostgreSQL"**
-2. Nom : `spotbulle-db`
+2. Nom : `spotbulle-ia-db`
 3. Plan : **Free**
 4. **COPIER L'URL DE CONNEXION** (format: `postgresql://user:pass@host:port/db`)
 
