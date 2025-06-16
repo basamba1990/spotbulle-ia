@@ -14,7 +14,7 @@ services:
 
   # Frontend Service
   - type: web
-    name: spotbulle-ia-intelligent
+    name: spotbulle-ia
     env: node
     plan: starter
     buildCommand: cd frontend && npm install && npm run build
