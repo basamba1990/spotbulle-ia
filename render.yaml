@@ -12,21 +12,6 @@ services:
       - key: PORT
         value: 10000
 
-  # Frontend Service
-  - type: web
-    name: spotbulle-ia
-    env: node
-    plan: starter
-    buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-      - key: NEXT_PUBLIC_API_URL
-        value: https://spotbulle-ia.onrender.com
-
 databases:
   - name: spotbulle-ia-db
     plan: basic-256mb
