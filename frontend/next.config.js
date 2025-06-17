@@ -26,7 +26,8 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/:path*`,
+        // CORRECTION ICI : la destination doit être la base de votre API backend
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`, // Supprimez le '/api' en trop
       },
     ];
   },
@@ -44,4 +45,3 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-
