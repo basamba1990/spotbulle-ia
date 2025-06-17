@@ -1,8 +1,8 @@
-const { DataTypes } = require(\'sequelize\');
-const { sequelize } = require(\'../config/db\');
-const bcrypt = require(\'bcryptjs\');
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../config/db");
+const bcrypt = require("bcryptjs");
 
-const User = sequelize.define(\'User\', {
+const User = sequelize.define("User", {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -54,22 +54,22 @@ const User = sequelize.define(\'User\', {
     defaultValue: {
       notifications: true,
       public_profile: true,
-      theme: \'light\'
+      theme: "light"
     }
   },
   statut: {
-    type: DataTypes.ENUM(\'actif\', \'inactif\', \'suspendu\'),
-    defaultValue: \'actif\'
+    type: DataTypes.ENUM("actif", "inactif", "suspendu"),
+    defaultValue: "actif"
   },
   derniere_connexion: {
     type: DataTypes.DATE,
     allowNull: true
   }
 }, {
-  tableName: \'users\',
+  tableName: "users",
   timestamps: true,
-  createdAt: \'date_creation\',
-  updatedAt: \'date_modification\',
+  createdAt: "date_creation",
+  updatedAt: "date_modification",
   hooks: {
     beforeCreate: async (user) => {
       if (user.password_hash) {
@@ -78,7 +78,7 @@ const User = sequelize.define(\'User\', {
       }
     },
     beforeUpdate: async (user) => {
-      if (user.changed(\'password_hash\')) {
+      if (user.changed("password_hash")) {
         const salt = await bcrypt.genSalt(12);
         user.password_hash = await bcrypt.hash(user.password_hash, salt);
       }
@@ -91,7 +91,7 @@ User.prototype.verifyPassword = async function(password) {
   return await bcrypt.compare(password, this.password_hash);
 };
 
-// Méthode pour obtenir les données publiques de l\'utilisateur
+// Méthode pour obtenir les données publiques de l'utilisateur
 User.prototype.getPublicData = function() {
   const { password_hash, ...publicData } = this.toJSON();
   return publicData;
