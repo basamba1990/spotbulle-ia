@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
@@ -17,20 +17,28 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // CORRECTION: Effacer toute erreur existante lors du montage du composant
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
-    if (error) clearError();
+    // La ligne suivante est toujours utile pour effacer l'erreur si l'utilisateur commence à taper après une erreur de soumission
+    if (error) clearError(); 
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      alert('Les mots de passe ne correspondent pas');
+      // Vous pouvez définir une erreur locale ici si vous voulez un message plus spécifique pour cette validation
+      // Par exemple: setErrorMessage('Les mots de passe ne correspondent pas');
+      alert('Les mots de passe ne correspondent pas'); // Garder l'alerte pour l'instant
       return;
     }
 
@@ -43,6 +51,7 @@ export default function RegisterForm() {
       router.push('/dashboard');
     } catch (err) {
       console.error('Erreur lors de l\'inscription:', err);
+      // L'erreur est déjà gérée par AuthContext et propagée via le hook useAuth
     }
   };
 
@@ -201,4 +210,3 @@ export default function RegisterForm() {
     </div>
   );
 }
-
