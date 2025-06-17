@@ -39,7 +39,8 @@ module.exports = {
         type: Sequelize.JSONB // Ou TEXT si vous stockez des chaînes JSON simples
       },
       statut: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        defaultValue: 'actif' // Ajout de la valeur par défaut
       },
       derniere_connexion: {
         type: Sequelize.DATE
