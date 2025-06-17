@@ -1,11 +1,11 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
-const User = require('../models/User');
+const bcrypt = require("bcryptjs"); // CHANGEMENT ICI
+const jwt = require("jsonwebtoken");
+const { validationResult } = require("express-validator");
+const User = require("../models/User");
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d"
   });
 };
 
@@ -17,7 +17,7 @@ const authController = {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: 'Données invalides',
+          message: "Données invalides",
           errors: errors.array()
         });
       }
@@ -29,7 +29,7 @@ const authController = {
       if (existingUser) {
         return res.status(400).json({
           success: false,
-          message: 'Un utilisateur avec cet email existe déjà'
+          message: "Un utilisateur avec cet email existe déjà"
         });
       }
 
@@ -44,7 +44,7 @@ const authController = {
         nom,
         prenom,
         bio: bio || null,
-        statut: 'actif' // Ajouter cette ligne
+        statut: "actif" // Ajouter cette ligne
       });
 
       // Générer le token pour connexion automatique
@@ -52,17 +52,17 @@ const authController = {
 
       res.status(201).json({
         success: true,
-        message: 'Utilisateur créé avec succès',
+        message: "Utilisateur créé avec succès",
         data: {
           user: user.getPublicData(),
           token // Ajouter le token pour connexion automatique
         }
       });
     } catch (error) {
-      console.error('Erreur inscription:', error);
+      console.error("Erreur inscription:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur serveur lors de l\'inscription'
+        message: "Erreur serveur lors de l'inscription"
       });
     }
   },
@@ -74,7 +74,7 @@ const authController = {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: 'Données invalides',
+          message: "Données invalides",
           errors: errors.array()
         });
       }
@@ -86,7 +86,7 @@ const authController = {
       if (!user) {
         return res.status(401).json({
           success: false,
-          message: 'Email ou mot de passe incorrect'
+          message: "Email ou mot de passe incorrect"
         });
       }
 
@@ -95,15 +95,15 @@ const authController = {
       if (!isValidPassword) {
         return res.status(401).json({
           success: false,
-          message: 'Email ou mot de passe incorrect'
+          message: "Email ou mot de passe incorrect"
         });
       }
 
       // Vérifier le statut du compte
-      if (user.statut !== 'actif') {
+      if (user.statut !== "actif") {
         return res.status(401).json({
           success: false,
-          message: 'Compte inactif ou suspendu'
+          message: "Compte inactif ou suspendu"
         });
       }
 
@@ -115,17 +115,17 @@ const authController = {
 
       res.json({
         success: true,
-        message: 'Connexion réussie',
+        message: "Connexion réussie",
         data: {
           user: user.getPublicData(),
           token
         }
       });
     } catch (error) {
-      console.error('Erreur connexion:', error);
+      console.error("Erreur connexion:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur serveur lors de la connexion'
+        message: "Erreur serveur lors de la connexion"
       });
     }
   },
@@ -140,10 +140,10 @@ const authController = {
         }
       });
     } catch (error) {
-      console.error('Erreur récupération profil:', error);
+      console.error("Erreur récupération profil:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur serveur lors de la récupération du profil'
+        message: "Erreur serveur lors de la récupération du profil"
       });
     }
   },
@@ -154,13 +154,13 @@ const authController = {
       // Dans une implémentation plus avancée, on pourrait blacklister le token
       res.json({
         success: true,
-        message: 'Déconnexion réussie'
+        message: "Déconnexion réussie"
       });
     } catch (error) {
-      console.error('Erreur déconnexion:', error);
+      console.error("Erreur déconnexion:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur serveur lors de la déconnexion'
+        message: "Erreur serveur lors de la déconnexion"
       });
     }
   },
@@ -172,14 +172,14 @@ const authController = {
       
       res.json({
         success: true,
-        message: 'Token rafraîchi avec succès',
+        message: "Token rafraîchi avec succès",
         data: { token }
       });
     } catch (error) {
-      console.error('Erreur rafraîchissement token:', error);
+      console.error("Erreur rafraîchissement token:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur serveur lors du rafraîchissement du token'
+        message: "Erreur serveur lors du rafraîchissement du token"
       });
     }
   }
