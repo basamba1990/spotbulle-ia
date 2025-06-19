@@ -45,8 +45,8 @@ api.interceptors.response.use(
 
 // API d'authentification
 export const authAPI = {
-  register: (userData) => api.post("/register", userData),
-  login: (credentials) => api.post('/login', credentials),
+  register: (userData) => api.post("/api/auth/register", userData),
+  login: (credentials) => api.post("/api/auth/login", credentials),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
   refreshToken: () => api.post('/auth/refresh-token'),
@@ -74,7 +74,7 @@ export const eventAPI = {
 
 // API des vidéos
 export const videoAPI = {
-  getVideos: (params = {}) => api.get('/videos', { params }),
+  getVideos: (params = {}) => api.get("/api/videos", { params }),
   getVideoById: (videoId) => api.get(`/videos/${videoId}`),
   uploadVideo: (formData) => api.post('/videos/upload', formData, {
     headers: {
