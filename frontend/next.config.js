@@ -28,6 +28,7 @@ const nextConfig = {
         source: '/api/:path*',
         // CORRECTION ICI : la destination doit être la base de votre API backend
         destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`,
+      }
     ];
   },
   webpack: (config, { isServer }) => {
