@@ -5,7 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.onrende
 
 // Instance Axios configurée
 const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: API_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -45,8 +45,8 @@ api.interceptors.response.use(
 
 // API d'authentification
 export const authAPI = {
-  register: (userData) => api.post('/auth/register', userData),
-  login: (credentials) => api.post('/auth/login', credentials),
+  register: (userData) => api.post("/register", userData),
+  login: (credentials) => api.post('/login', credentials),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
   refreshToken: () => api.post('/auth/refresh-token'),
