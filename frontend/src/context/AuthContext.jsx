@@ -171,17 +171,18 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login(credentials);
       
-      if (response.success) {
+      // CORRECTION: Axios retourne les données dans response.data
+      if (response.data && response.data.success) {
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
           payload: {
-            user: response.data.user,
-            token: response.data.token,
+            user: response.data.data.user,
+            token: response.data.data.token,
           },
         });
         return { success: true };
       } else {
-        throw new Error(response.message || 'Erreur de connexion');
+        throw new Error(response.data?.message || 'Erreur de connexion');
       }
     } catch (error) {
       let errorMessage = 'Erreur de connexion au serveur';
@@ -218,17 +219,18 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.register(userData);
       
-      if (response.success) {
+      // CORRECTION: Axios retourne les données dans response.data
+      if (response.data && response.data.success) {
         dispatch({
           type: AUTH_ACTIONS.REGISTER_SUCCESS,
           payload: {
-            user: response.data.user,
-            token: response.data.token,
+            user: response.data.data.user,
+            token: response.data.data.token,
           },
         });
         return { success: true };
       } else {
-        throw new Error(response.message || 'Erreur d\'inscription');
+        throw new Error(response.data?.message || 'Erreur d\'inscription');
       }
     } catch (error) {
       const errorData = apiUtils.handleError(error);
