@@ -1,19 +1,36 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Vérification de la présence du JWT_SECRET au démarrage
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET manquant dans les variables d\'environnement');
+}
+
 const authMiddleware = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
+    const authHeader = req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
-        message: 'Accès refusé. Token manquant.'
+        message: 'Accès refusé. Format de token invalide.'
       });
     }
 
+    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(decoded.userId);
+    
+    // Vérification de l'expiration du token
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp && decoded.exp < now) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token expiré.'
+      });
+    }
+
+    const user = await User.findByPk(decoded.userId, {
+      attributes: ['id', 'email', 'nom', 'prenom', 'bio', 'statut', 'role', 'derniere_connexion']
+    });
     
     if (!user) {
       return res.status(401).json({
@@ -23,7 +40,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     if (user.statut !== 'actif') {
-      return res.status(401).json({
+      return res.status(403).json({
         success: false,
         message: 'Compte utilisateur inactif ou suspendu.'
       });
@@ -56,20 +73,27 @@ const authMiddleware = async (req, res, next) => {
 
 const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (token) {
+    const authHeader = req.header('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findByPk(decoded.userId);
       
-      if (user && user.statut === 'actif') {
-        req.user = user;
+      // Vérification de l'expiration
+      const now = Math.floor(Date.now() / 1000);
+      if (decoded.exp && decoded.exp >= now) {
+        const user = await User.findByPk(decoded.userId, {
+          attributes: ['id', 'email', 'nom', 'prenom', 'bio', 'statut', 'role']
+        });
+        
+        if (user && user.statut === 'actif') {
+          req.user = user;
+        }
       }
     }
     
     next();
   } catch (error) {
-    // En cas d'erreur, on continue sans utilisateur authentifié
+    // Ignorer les erreurs d'authentification pour ce middleware optionnel
     next();
   }
 };
@@ -83,14 +107,12 @@ const requireRole = (roles) => {
       });
     }
 
-    // Pour l'instant, on considère que tous les utilisateurs ont le rôle 'user'
-    // Cette logique peut être étendue avec un système de rôles plus complexe
-    const userRole = req.user.role || 'user';
-    
-    if (!roles.includes(userRole)) {
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Permissions insuffisantes.'
+        message: 'Permissions insuffisantes.',
+        requiredRoles: roles,
+        userRole: req.user.role
       });
     }
 
@@ -103,4 +125,3 @@ module.exports = {
   optionalAuth,
   requireRole
 };
-
