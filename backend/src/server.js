@@ -130,6 +130,13 @@ app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/videos', videoRoutes);
 
+// Routes de compatibilité (sans préfixe /api)
+// Ces routes redirigent vers les routes API appropriées
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/events', eventRoutes);
+app.use('/videos', videoRoutes);
+
 // Route par défaut
 app.get('/', (req, res) => {
   res.json({
@@ -160,10 +167,23 @@ app.use((err, req, res, next) => {
 
 // Middleware pour les routes non trouvées
 app.use('*', (req, res) => {
+  console.log(`❌ Route non trouvée: ${req.method} ${req.originalUrl}`);
+  console.log(`Headers: ${JSON.stringify(req.headers, null, 2)}`);
+  
   res.status(404).json({
     success: false,
     message: 'Route non trouvée',
-    path: req.originalUrl
+    path: req.originalUrl,
+    method: req.method,
+    suggestion: req.originalUrl.startsWith('/api/') 
+      ? 'Vérifiez que la route API existe' 
+      : `Essayez peut-être /api${req.originalUrl}`,
+    availableRoutes: {
+      auth: '/api/auth (POST /login, POST /register, GET /me)',
+      videos: '/api/videos (GET /, GET /:id, POST /upload)',
+      events: '/api/events (GET /, GET /:id, POST /)',
+      users: '/api/users (GET /profile, PUT /profile)'
+    }
   });
 });
 
