@@ -1,7 +1,12 @@
-const bcrypt = require("bcryptjs"); // CHANGEMENT ICI
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
+
+// Vérification obligatoire du secret JWT
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET manquant dans les variables d'environnement");
+}
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -27,7 +32,7 @@ const authController = {
       // Vérifier si l'utilisateur existe déjà
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
-        return res.status(400).json({
+        return res.status(409).json({ // 409 Conflict
           success: false,
           message: "Un utilisateur avec cet email existe déjà"
         });
@@ -40,29 +45,42 @@ const authController = {
       // Créer l'utilisateur
       const user = await User.create({
         email,
-        password_hash: hashedPassword, // Utiliser le mot de passe hashé
+        password_hash: hashedPassword,
         nom,
         prenom,
         bio: bio || null,
-        statut: "actif" // Ajouter cette ligne
+        statut: "actif",
+        role: "user" // Ajout du rôle par défaut
       });
 
       // Générer le token pour connexion automatique
       const token = generateToken(user.id);
 
+      // Ne renvoyer que les données publiques
+      const publicData = {
+        id: user.id,
+        email: user.email,
+        nom: user.nom,
+        prenom: user.prenom,
+        bio: user.bio,
+        statut: user.statut,
+        role: user.role
+      };
+
       res.status(201).json({
         success: true,
         message: "Utilisateur créé avec succès",
         data: {
-          user: user.getPublicData(),
-          token // Ajouter le token pour connexion automatique
+          user: publicData,
+          token
         }
       });
     } catch (error) {
       console.error("Erreur inscription:", error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de l'inscription"
+        message: "Erreur serveur lors de l'inscription",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },
@@ -81,9 +99,14 @@ const authController = {
 
       const { email, password } = req.body;
 
-      // Trouver l'utilisateur
-      const user = await User.findOne({ where: { email } });
+      // Trouver l'utilisateur avec les attributs nécessaires
+      const user = await User.findOne({
+        where: { email },
+        attributes: ['id', 'email', 'password_hash', 'nom', 'prenom', 'bio', 'statut', 'role']
+      });
+
       if (!user) {
+        console.log(`Tentative de connexion échouée: email ${email} non trouvé`);
         return res.status(401).json({
           success: false,
           message: "Email ou mot de passe incorrect"
@@ -93,6 +116,7 @@ const authController = {
       // Vérifier le mot de passe avec bcrypt
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
       if (!isValidPassword) {
+        console.log(`Tentative de connexion échouée: mot de passe incorrect pour ${email}`);
         return res.status(401).json({
           success: false,
           message: "Email ou mot de passe incorrect"
@@ -101,7 +125,7 @@ const authController = {
 
       // Vérifier le statut du compte
       if (user.statut !== "actif") {
-        return res.status(401).json({
+        return res.status(403).json({ // 403 Forbidden
           success: false,
           message: "Compte inactif ou suspendu"
         });
@@ -113,11 +137,22 @@ const authController = {
       // Générer le token
       const token = generateToken(user.id);
 
+      // Ne renvoyer que les données publiques
+      const publicData = {
+        id: user.id,
+        email: user.email,
+        nom: user.nom,
+        prenom: user.prenom,
+        bio: user.bio,
+        statut: user.statut,
+        role: user.role
+      };
+
       res.json({
         success: true,
         message: "Connexion réussie",
         data: {
-          user: user.getPublicData(),
+          user: publicData,
           token
         }
       });
@@ -125,7 +160,8 @@ const authController = {
       console.error("Erreur connexion:", error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de la connexion"
+        message: "Erreur serveur lors de la connexion",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },
@@ -133,25 +169,46 @@ const authController = {
   // Obtenir les informations de l'utilisateur connecté
   me: async (req, res) => {
     try {
+      // Charger les données à jour de l'utilisateur
+      const user = await User.findByPk(req.user.id, {
+        attributes: ['id', 'email', 'nom', 'prenom', 'bio', 'statut', 'role', 'derniere_connexion']
+      });
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "Utilisateur non trouvé"
+        });
+      }
+
       res.json({
         success: true,
         data: {
-          user: req.user.getPublicData()
+          user: {
+            id: user.id,
+            email: user.email,
+            nom: user.nom,
+            prenom: user.prenom,
+            bio: user.bio,
+            statut: user.statut,
+            role: user.role,
+            derniere_connexion: user.derniere_connexion
+          }
         }
       });
     } catch (error) {
       console.error("Erreur récupération profil:", error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de la récupération du profil"
+        message: "Erreur serveur lors de la récupération du profil",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },
 
-  // Déconnexion (côté client principalement)
+  // Déconnexion
   logout: async (req, res) => {
     try {
-      // Dans une implémentation plus avancée, on pourrait blacklister le token
       res.json({
         success: true,
         message: "Déconnexion réussie"
