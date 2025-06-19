@@ -57,8 +57,8 @@ export const userAPI = {
   getProfile: (userId) => api.get(`/api/users/${userId}`),
   updateProfile: (userData) => api.put("/api/users/profile", userData),
   getUserVideos: (userId, params = {}) => api.get(`/api/users/${userId}/videos`, { params }),
-  getUserStats: (userId) => api.get(`/users/${userId}/stats`),
-  searchUsers: (params = {}) => api.get('/users/search', { params }),
+  getUserStats: (userId) => api.get(`/api/users/${userId}/stats`),
+  searchUsers: (params = {}) => api.get('/api/users/search', { params }),
 };
 
 // API des événements
@@ -69,7 +69,7 @@ export const eventAPI = {
   updateEvent: (eventId, eventData) => api.put(`/api/events/${eventId}`, eventData),
   deleteEvent: (eventId) => api.delete(`/api/events/${eventId}`),
   getEventVideos: (eventId, params = {}) => api.get(`/api/events/${eventId}/videos`, { params }),
-  joinEvent: (eventId, data = {}) => api.post(`/events/${eventId}/join`, data),
+  joinEvent: (eventId, data = {}) => api.post(`/api/events/${eventId}/join`, data),
 };
 
 // API des vidéos
