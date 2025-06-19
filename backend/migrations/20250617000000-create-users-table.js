@@ -61,16 +61,22 @@ module.exports = {
       derniere_connexion: {
         type: Sequelize.DATE,
         allowNull: true
+      },
+      // AJOUT DU CHAMP ROLE
+      role: {
+        type: Sequelize.STRING,
+        defaultValue: 'user', // Valeur par défaut
+        allowNull: false
       }
     });
 
     // Ajouter des index pour améliorer les performances
     await queryInterface.addIndex('users', ['email']);
     await queryInterface.addIndex('users', ['statut']);
+    await queryInterface.addIndex('users', ['role']); // Nouvel index pour le rôle
   },
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('users');
   }
 };
-
