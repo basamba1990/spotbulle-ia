@@ -13,6 +13,7 @@ export default function LoginForm() {
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,6 +21,14 @@ export default function LoginForm() {
       ...prev,
       [name]: value
     }));
+    
+    // CORRECTION: Effacer les erreurs de validation du champ modifié
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
   };
 
   // Effacer l'erreur quand l'utilisateur tape
@@ -30,14 +39,40 @@ export default function LoginForm() {
     handleChange(e);
   };
 
+  // CORRECTION: Validation côté client
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.email.trim()) {
+      errors.email = 'L\'adresse email est requise';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Format d\'email invalide';
+    }
+    
+    if (!formData.password.trim()) {
+      errors.password = 'Le mot de passe est requis';
+    } else if (formData.password.length < 6) {
+      errors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // CORRECTION: Validation avant envoi
+    if (!validateForm()) {
+      return;
+    }
     
     const result = await login(formData);
     
     if (result.success) {
       router.push('/dashboard');
     }
+    // CORRECTION: L'erreur est maintenant gérée automatiquement par le contexte
   };
 
   return (
@@ -62,9 +97,9 @@ export default function LoginForm() {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {/* Affichage des erreurs amélioré */}
+          {/* CORRECTION: Affichage des erreurs amélioré avec animation */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="bg-red-50 border border-red-200 rounded-md p-4 animate-fade-in">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg
@@ -82,6 +117,20 @@ export default function LoginForm() {
                 <div className="ml-3">
                   <p className="text-sm text-red-800">{error}</p>
                 </div>
+                <div className="ml-auto pl-3">
+                  <div className="-mx-1.5 -my-1.5">
+                    <button
+                      type="button"
+                      onClick={clearError}
+                      className="inline-flex bg-red-50 rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-50 focus:ring-red-600"
+                    >
+                      <span className="sr-only">Fermer</span>
+                      <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -97,11 +146,16 @@ export default function LoginForm() {
                 type="email"
                 autoComplete="email"
                 required
-                className="input mt-1"
+                className={`input mt-1 ${formErrors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
                 placeholder="votre@email.com"
                 value={formData.email}
                 onChange={handleInputChange}
+                disabled={isLoading}
               />
+              {/* CORRECTION: Affichage des erreurs de validation */}
+              {formErrors.email && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+              )}
             </div>
 
             <div>
@@ -115,15 +169,17 @@ export default function LoginForm() {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
-                  className="input"
+                  className={`input ${formErrors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
                   placeholder="Votre mot de passe"
                   value={formData.password}
                   onChange={handleInputChange}
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
                 >
                   <svg
                     className="h-5 w-5 text-gray-400"
@@ -149,6 +205,10 @@ export default function LoginForm() {
                   </svg>
                 </button>
               </div>
+              {/* CORRECTION: Affichage des erreurs de validation */}
+              {formErrors.password && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
+              )}
             </div>
           </div>
 
@@ -159,6 +219,7 @@ export default function LoginForm() {
                 name="remember-me"
                 type="checkbox"
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                disabled={isLoading}
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                 Se souvenir de moi
@@ -179,7 +240,7 @@ export default function LoginForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               {isLoading ? (
                 <div className="flex items-center">
@@ -195,6 +256,7 @@ export default function LoginForm() {
             </button>
           </div>
 
+          {/* CORRECTION: Amélioration de l'accessibilité et du feedback visuel */}
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -208,7 +270,7 @@ export default function LoginForm() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                 disabled={isLoading}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -234,7 +296,7 @@ export default function LoginForm() {
 
               <button
                 type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                 disabled={isLoading}
               >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
