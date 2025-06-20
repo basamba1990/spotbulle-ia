@@ -62,16 +62,16 @@ api.interceptors.response.use(
       }
       console.error(`Erreur API (${status}):`, errorMessage, data.errors);
       // Vous pouvez utiliser une bibliothèque de notifications (ex: react-toastify) ici
-      // toast.error(errorMessage);
+      toast.error(errorMessage);
 
     } else if (error.request) {
       // La requête a été faite mais aucune réponse n'a été reçue (e.g., réseau)
       console.error("Erreur réseau: Aucune réponse reçue.", error.message);
-      // toast.error("Impossible de se connecter au serveur. Vérifiez votre connexion internet.");
+      toast.error("Impossible de se connecter au serveur. Vérifiez votre connexion internet.");
     } else {
       // Autre chose s'est mal passé lors de la configuration de la requête
       console.error("Erreur de configuration de la requête:", error.message);
-      // toast.error("Une erreur inattendue est survenue.");
+      toast.error("Une erreur inattendue est survenue.");
     }
     return Promise.reject(error);
   }
