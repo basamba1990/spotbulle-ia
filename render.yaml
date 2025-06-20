@@ -11,6 +11,24 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: DATABASE_URL
+        sync: false # Ou true si vous utilisez un groupe de secrets
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: BUCKET_NAME
+        value: "pitch-videos"
+      - key: FRONTEND_URL
+        value: "https://spotbulle-ia.vercel.app"
+      - key: OPENAI_API_KEY
+        sync: false
 
 databases:
   - name: spotbulle-ia-db
