@@ -12,12 +12,12 @@ export const metadata = {
   authors: [{ name: 'SpotBulle Team' }],
   viewport: 'width=device-width, initial-scale=1',
   themeColor: '#3b82f6',
-  manifest: '/manifest.json',
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
-  openGraph: {
+  manifest: '/manifest.json',  icons: {
+    icon: 
+'/favicon.png',
+    apple: 
+'/apple-touch-icon.png',
+  },  openGraph: {
     title: 'SpotBulle - Plateforme de partage vidéo',
     description: 'Partagez vos vidéos d\'événements et créez votre communauté',
     type: 'website',
