@@ -8,6 +8,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadError, setUploadError] = useState(null); // Nouvel état pour les erreurs d'upload
   const [formData, setFormData] = useState({
     titre: '',
     description: '',
@@ -24,7 +25,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
   const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
     if (rejectedFiles.length > 0) {
       const error = rejectedFiles[0].errors[0];
-      onUploadError?.(error.message);
+      setUploadError(error.message);
       return;
     }
 
@@ -43,7 +44,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
           }));
         }
       } catch (error) {
-        onUploadError?.(error.message);
+        setUploadError(error.message);
       }
     }
   }, [formData.titre, onUploadError]);
@@ -88,7 +89,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
 
   const handleUpload = async () => {
     if (!selectedFile || !formData.titre.trim()) {
-      onUploadError?.('Veuillez sélectionner un fichier et saisir un titre');
+      setUploadError("Veuillez sélectionner un fichier et saisir un titre");
       return;
     }
 
@@ -148,7 +149,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
       setIsUploading(false);
       setUploadProgress(0);
       const errorData = apiUtils.handleError(error);
-      onUploadError?.(errorData.message);
+      setUploadError(errorData.message);
     }
   };
 
@@ -224,6 +225,16 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
           </div>
         )}
       </div>
+
+      {uploadError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Erreur:</strong>
+          <span className="block sm:inline"> {uploadError}</span>
+          <span className="absolute top-0 bottom-0 right-0 px-4 py-3">
+            <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" onClick={() => setUploadError(null)}><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+          </span>
+        </div>
+      )}
 
       {/* Barre de progression */}
       {isUploading && (
