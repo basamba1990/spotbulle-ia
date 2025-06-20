@@ -138,7 +138,6 @@ export const AuthProvider = ({ children }) => {
     
     if (!token) {
       // CORRECTION: Ne pas afficher d'erreur si aucun token au chargement initial
-      // Simplement marquer comme non chargé
       dispatch({ 
         type: AUTH_ACTIONS.LOAD_USER_ERROR, 
         payload: null // Pas de message d'erreur
@@ -155,7 +154,7 @@ export const AuthProvider = ({ children }) => {
         payload: { user: response.data.data.user },
       });
     } catch (error) {
-      const errorData = apiUtils.handleError(error);
+      console.error('Erreur lors du chargement de l\'utilisateur:', error);
       dispatch({ 
         type: AUTH_ACTIONS.LOAD_USER_ERROR, 
         payload: 'Session expirée, veuillez vous reconnecter' 
@@ -164,14 +163,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Fonction de connexion
+  // Fonction de connexion CORRIGÉE
   const login = async (credentials) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
     try {
       const response = await authAPI.login(credentials);
       
-      // CORRECTION: Axios retourne les données dans response.data
+      // CORRECTION: Vérification de la réponse de succès
       if (response.data && response.data.success) {
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -182,19 +181,35 @@ export const AuthProvider = ({ children }) => {
         });
         return { success: true };
       } else {
-        throw new Error(response.data?.message || 'Erreur de connexion');
+        // CORRECTION: Gestion du cas où success est false
+        const errorMessage = response.data?.message || 'Erreur de connexion';
+        dispatch({ 
+          type: AUTH_ACTIONS.LOGIN_ERROR, 
+          payload: errorMessage 
+        });
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
+      console.error('Erreur de connexion:', error);
+      
+      // CORRECTION: Gestion améliorée des erreurs
       let errorMessage = 'Erreur de connexion au serveur';
       
       if (error.response) {
         // Erreur de réponse du serveur
-        if (error.response.status === 401) {
-          errorMessage = 'Email ou mot de passe incorrect';
-        } else if (error.response.status === 500) {
-          errorMessage = 'Erreur interne du serveur';
+        const status = error.response.status;
+        const serverMessage = error.response.data?.message;
+        
+        if (status === 401) {
+          errorMessage = serverMessage || 'Email ou mot de passe incorrect';
+        } else if (status === 403) {
+          errorMessage = serverMessage || 'Compte inactif ou suspendu';
+        } else if (status === 500) {
+          errorMessage = 'Erreur interne du serveur. Veuillez réessayer plus tard.';
+        } else if (status >= 400 && status < 500) {
+          errorMessage = serverMessage || 'Données invalides';
         } else {
-          errorMessage = error.response.data?.message || 'Erreur de connexion';
+          errorMessage = serverMessage || 'Erreur de connexion';
         }
       } else if (error.request) {
         // Erreur de réseau
@@ -212,14 +227,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Fonction d'inscription
+  // Fonction d'inscription CORRIGÉE
   const register = async (userData) => {
     dispatch({ type: AUTH_ACTIONS.REGISTER_START });
 
     try {
       const response = await authAPI.register(userData);
       
-      // CORRECTION: Axios retourne les données dans response.data
+      // CORRECTION: Vérification de la réponse de succès
       if (response.data && response.data.success) {
         dispatch({
           type: AUTH_ACTIONS.REGISTER_SUCCESS,
@@ -230,15 +245,49 @@ export const AuthProvider = ({ children }) => {
         });
         return { success: true };
       } else {
-        throw new Error(response.data?.message || 'Erreur d\'inscription');
+        // CORRECTION: Gestion du cas où success est false
+        const errorMessage = response.data?.message || 'Erreur d\'inscription';
+        dispatch({ 
+          type: AUTH_ACTIONS.REGISTER_ERROR, 
+          payload: errorMessage 
+        });
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
-      const errorData = apiUtils.handleError(error);
+      console.error('Erreur d\'inscription:', error);
+      
+      // CORRECTION: Gestion améliorée des erreurs d'inscription
+      let errorMessage = 'Erreur lors de l\'inscription';
+      
+      if (error.response) {
+        const status = error.response.status;
+        const serverMessage = error.response.data?.message;
+        const serverErrors = error.response.data?.errors;
+        
+        if (status === 409) {
+          errorMessage = serverMessage || 'Un utilisateur avec cet email existe déjà';
+        } else if (status === 400) {
+          if (serverErrors && serverErrors.length > 0) {
+            errorMessage = serverErrors.map(err => err.msg).join(', ');
+          } else {
+            errorMessage = serverMessage || 'Données invalides';
+          }
+        } else if (status === 500) {
+          errorMessage = 'Erreur interne du serveur. Veuillez réessayer plus tard.';
+        } else {
+          errorMessage = serverMessage || 'Erreur lors de l\'inscription';
+        }
+      } else if (error.request) {
+        errorMessage = 'Impossible de contacter le serveur. Vérifiez votre connexion internet.';
+      } else {
+        errorMessage = error.message || 'Erreur lors de l\'inscription';
+      }
+
       dispatch({ 
         type: AUTH_ACTIONS.REGISTER_ERROR, 
-        payload: errorData.message 
+        payload: errorMessage 
       });
-      return { success: false, error: errorData.message };
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -276,3 +325,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export default AuthContext;
+
