@@ -64,6 +64,10 @@ const User = sequelize.define("User", {
   derniere_connexion: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  role: {
+    type: DataTypes.ENUM("utilisateur", "administrateur", "moderateur"),
+    defaultValue: "utilisateur"
   }
 }, {
   tableName: "users",
@@ -98,3 +102,5 @@ User.prototype.getPublicData = function() {
 };
 
 module.exports = User;
+
+
