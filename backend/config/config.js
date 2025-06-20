@@ -5,7 +5,8 @@ module.exports = {
   development: {
     // Utilisez l'URL de la base de données pour le développement.
     // Vous pouvez la définir directement ici ou via une variable d'environnement locale.
-    url: process.env.DATABASE_URL || 'postgresql://spotbulle_ia_db_user:jskCEaL3eumFWab6WHJw2cIX9ovtpcFo@dpg-d16tl7ndiees73djcl90-a/spotbulle_ia_db',
+    url: process.env.DATABASE_URL || 'postgresql://spotbulle_ia_db_deoi_user:sHwvy4I5c530CeBYFHlAyuPgJQI4x2r6@dpg-d191qhbuibrs73bo0ut0-a.frankfurt-postgres.render.com/spotbulle_ia_db_deoi
+',
     dialect: 'postgres',
     logging: console.log, // Active les logs en développement pour voir ce que fait Sequelize
   },
