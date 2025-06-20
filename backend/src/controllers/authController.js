@@ -50,7 +50,7 @@ const authController = {
         prenom,
         bio: bio || null,
         statut: "actif",
-        role: "user" // Ajout du rôle par défaut
+        role: "utilisateur" // CORRECTION: Utiliser "utilisateur" au lieu de "user"
       });
 
       // Générer le token pour connexion automatique
@@ -243,3 +243,4 @@ const authController = {
 };
 
 module.exports = authController;
+
