@@ -68,12 +68,9 @@ export default function LoginForm() {
     }
     
     const result = await login(formData);
-    
-    if (result.success) {
-      router.push('/dashboard');
+    if (!result.success) {
+      setFormErrors({ general: result.message });
     }
-    // CORRECTION: L'erreur est maintenant gérée automatiquement par le contexte
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
