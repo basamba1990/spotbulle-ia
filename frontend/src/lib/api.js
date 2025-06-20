@@ -32,12 +32,46 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expiré ou invalide
-      Cookies.remove('auth-token');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+    if (error.response) {
+      // Le serveur a répondu avec un statut d'erreur (e.g., 4xx, 5xx)
+      const { status, data } = error.response;
+      let errorMessage = data.message || `Erreur ${status} du serveur`;
+
+      switch (status) {
+        case 400:
+          errorMessage = data.message || "Requête invalide.";
+          break;
+        case 401:
+          // Géré spécifiquement pour la redirection vers /login
+          errorMessage = data.message || "Session expirée ou non autorisée.";
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+          break;
+        case 403:
+          errorMessage = data.message || "Accès refusé.";
+          break;
+        case 404:
+          errorMessage = data.message || "Ressource non trouvée.";
+          break;
+        case 500:
+          errorMessage = data.message || "Erreur interne du serveur. Veuillez réessayer plus tard.";
+          break;
+        default:
+          errorMessage = data.message || `Une erreur inattendue est survenue (Code: ${status}).`;
       }
+      console.error(`Erreur API (${status}):`, errorMessage, data.errors);
+      // Vous pouvez utiliser une bibliothèque de notifications (ex: react-toastify) ici
+      // toast.error(errorMessage);
+
+    } else if (error.request) {
+      // La requête a été faite mais aucune réponse n'a été reçue (e.g., réseau)
+      console.error("Erreur réseau: Aucune réponse reçue.", error.message);
+      // toast.error("Impossible de se connecter au serveur. Vérifiez votre connexion internet.");
+    } else {
+      // Autre chose s'est mal passé lors de la configuration de la requête
+      console.error("Erreur de configuration de la requête:", error.message);
+      // toast.error("Une erreur inattendue est survenue.");
     }
     return Promise.reject(error);
   }
