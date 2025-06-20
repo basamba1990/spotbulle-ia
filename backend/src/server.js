@@ -83,17 +83,6 @@ app.use(limiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Middleware de redirection pour les requêtes de navigateur
-app.use((req, res, next) => {
-  // Vérifie si la requête provient d'un navigateur (en se basant sur l'en-tête Accept)
-  // Cette vérification est simplifiée et peut nécessiter des ajustements plus robustes
-  if (req.method === 'GET' && req.headers.accept && req.headers.accept.includes('text/html')) {
-    // Redirige vers l'URL du frontend
-    return res.redirect(process.env.FRONTEND_URL || 'https://spotbulle-ia.vercel.app/login');
-  }
-  next(); // Passe à la prochaine fonction middleware ou route
-});
-
 // Route de santé (ne nécessite pas de DB)
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -239,5 +228,4 @@ process.on('SIGINT', () => {
 
 // Démarrer le serveur
 startServer();
-
 
