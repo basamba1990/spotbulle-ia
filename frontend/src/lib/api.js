@@ -33,7 +33,6 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response) {
-      // Le serveur a répondu avec un statut d'erreur (e.g., 4xx, 5xx)
       const { status, data } = error.response;
       let errorMessage = data.message || `Erreur ${status} du serveur`;
 
@@ -42,7 +41,6 @@ api.interceptors.response.use(
           errorMessage = data.message || "Requête invalide.";
           break;
         case 401:
-          // Géré spécifiquement pour la redirection vers /login
           errorMessage = data.message || "Session expirée ou non autorisée.";
           if (typeof window !== 'undefined') {
             window.location.href = '/login';
@@ -61,17 +59,11 @@ api.interceptors.response.use(
           errorMessage = data.message || `Une erreur inattendue est survenue (Code: ${status}).`;
       }
       console.error(`Erreur API (${status}):`, errorMessage, data.errors);
-      // Vous pouvez utiliser une bibliothèque de notifications (ex: react-toastify) ici
-      toast.error(errorMessage);
 
     } else if (error.request) {
-      // La requête a été faite mais aucune réponse n'a été reçue (e.g., réseau)
       console.error("Erreur réseau: Aucune réponse reçue.", error.message);
-      toast.error("Impossible de se connecter au serveur. Vérifiez votre connexion internet.");
     } else {
-      // Autre chose s'est mal passé lors de la configuration de la requête
       console.error("Erreur de configuration de la requête:", error.message);
-      toast.error("Une erreur inattendue est survenue.");
     }
     return Promise.reject(error);
   }
@@ -126,21 +118,18 @@ export const apiUtils = {
   // Gestion des erreurs
   handleError: (error) => {
     if (error.response) {
-      // Erreur de réponse du serveur
       return {
         message: error.response.data?.message || 'Erreur serveur',
         status: error.response.status,
         errors: error.response.data?.errors || [],
       };
     } else if (error.request) {
-      // Erreur de réseau
       return {
         message: 'Erreur de connexion au serveur',
         status: 0,
         errors: [],
       };
     } else {
-      // Autre erreur
       return {
         message: error.message || 'Erreur inconnue',
         status: 0,
@@ -149,7 +138,6 @@ export const apiUtils = {
     }
   },
 
-  // Formatage des paramètres de pagination
   formatPaginationParams: (page = 1, limit = 10, filters = {}) => {
     return {
       page,
@@ -158,7 +146,6 @@ export const apiUtils = {
     };
   },
 
-  // Validation des types de fichiers
   validateVideoFile: (file) => {
     const allowedTypes = process.env.NEXT_PUBLIC_ALLOWED_VIDEO_TYPES?.split(',') || [
       'video/mp4',
@@ -181,14 +168,12 @@ export const apiUtils = {
     return true;
   },
 
-  // Formatage des URLs d'images
   formatImageUrl: (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
     return `${API_URL}${url}`;
   },
 
-  // Formatage des dates
   formatDate: (date) => {
     return new Date(date).toLocaleDateString('fr-FR', {
       year: 'numeric',
@@ -207,7 +192,6 @@ export const apiUtils = {
     });
   },
 
-  // Formatage de la durée des vidéos
   formatDuration: (seconds) => {
     if (!seconds) return '0:00';
     
@@ -222,7 +206,6 @@ export const apiUtils = {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   },
 
-  // Formatage de la taille des fichiers
   formatFileSize: (bytes) => {
     if (!bytes) return '0 B';
     
