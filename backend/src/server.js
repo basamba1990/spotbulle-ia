@@ -1,3 +1,4 @@
+// backend/src/server.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -5,6 +6,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+const path = require('path'); // <-- AJOUTEZ CETTE LIGNE
 
 const { connectDB } = require('./config/db');
 
@@ -78,6 +80,20 @@ app.use(cors({
 app.use(compression());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(limiter);
+
+// --- DÉBUT DES CORRECTIONS À APPLIQUER DANS backend/src/server.js ---
+
+// Ajoutez cette ligne pour faire confiance aux en-têtes de proxy
+// '1' signifie faire confiance au premier proxy (comme Render.com ou Cloudflare)
+// Cela permet à express-rate-limit et autres middlewares d'obtenir l'IP réelle du client.
+app.set('trust proxy', 1); // <-- AJOUTEZ CETTE LIGNE ICI
+
+// Servez les fichiers statiques (comme favicon.ico) depuis le dossier 'public'
+// Assurez-vous que le dossier 'public' existe à la racine de votre projet
+// (par exemple, au même niveau que le dossier 'backend').
+app.use(express.static(path.join(__dirname, '../../public'))); // <-- AJOUTEZ CETTE LIGNE ICI
+
+// --- FIN DES CORRECTIONS À APPLIQUER DANS backend/src/server.js ---
 
 // Middlewares pour le parsing
 app.use(express.json({ limit: '50mb' }));
@@ -228,4 +244,3 @@ process.on('SIGINT', () => {
 
 // Démarrer le serveur
 startServer();
-
