@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
+import SuccessNotification from '../ui/SuccessNotification';
+import ErrorNotification from '../ui/ErrorNotification';
 
 export default function RegisterForm() {
   const { register, isLoading, error, clearError } = useAuth();
@@ -18,6 +20,8 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [showErrorNotification, setShowErrorNotification] = useState(false);
 
   // CORRECTION: Effacer toute erreur existante lors du montage du composant
   useEffect(() => {
@@ -97,8 +101,16 @@ export default function RegisterForm() {
     });
     
     if (result.success) {
-      router.push("/dashboard");
+      // Afficher la notification de succès
+      setShowSuccessNotification(true);
+      
+      // Rediriger vers le dashboard après un délai
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
     } else {
+      // Afficher la notification d'erreur
+      setShowErrorNotification(true);
       setFormErrors({ general: result.message });
     }
   };
@@ -320,6 +332,25 @@ export default function RegisterForm() {
           </div>
         </form>
       </div>
+      
+      {/* Notification de succès */}
+      <SuccessNotification
+        show={showSuccessNotification}
+        message="Votre compte a été créé avec succès ! Redirection en cours..."
+        onClose={() => setShowSuccessNotification(false)}
+        autoClose={false}
+      />
+      
+      {/* Notification d'erreur */}
+      <ErrorNotification
+        show={showErrorNotification}
+        message={error || formErrors.general}
+        onClose={() => {
+          setShowErrorNotification(false);
+          clearError();
+        }}
+        autoClose={false}
+      />
     </div>
   );
 }
