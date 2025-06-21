@@ -157,8 +157,8 @@ const registerValidation = [
   body('prenom').trim().isLength({ min: 2, max: 50 }).withMessage('Le prénom doit contenir entre 2 et 50 caractères')
 ];
 
-app.post('/login', loginValidation, authController.login);
-app.post('/register', registerValidation, authController.register);
+// app.post("/login", loginValidation, authController.login);
+// app.post("/register", registerValidation, authController.register);
 
 // Route par défaut
 app.get('/', (req, res) => {
