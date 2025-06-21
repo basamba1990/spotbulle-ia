@@ -96,7 +96,9 @@ export default function RegisterForm() {
       password: formData.password,
     });
     
-    if (!result.success) {
+    if (result.success) {
+      router.push("/dashboard");
+    } else {
       setFormErrors({ general: result.message });
     }
   };
