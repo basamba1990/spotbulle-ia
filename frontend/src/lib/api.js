@@ -113,6 +113,11 @@ export const videoAPI = {
   toggleLike: (videoId, action) => api.post(`/api/videos/${videoId}/like`, { action }),
 };
 
+// API de l'IA
+export const aiAPI = {
+  searchVideos: (keywords, page = 1, limit = 12) => api.get(`/api/ai/search?keywords=${encodeURIComponent(keywords)}&page=${page}&limit=${limit}`),
+};
+
 // Utilitaires
 export const apiUtils = {
   // Gestion des erreurs
