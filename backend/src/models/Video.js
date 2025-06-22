@@ -115,6 +115,42 @@ const Video = sequelize.define('Video', {
       commentaires_autorises: true,
       telechargement_autorise: false
     }
+  },
+  // Nouveaux champs pour l'IA
+  transcription_ia: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Transcription générée par IA'
+  },
+  mots_cles_ia: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    defaultValue: [],
+    comment: 'Mots-clés extraits par IA'
+  },
+  score_pitch: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    comment: 'Score de qualité du pitch (0-100)'
+  },
+  analyse_sentiment: {
+    type: DataTypes.JSONB,
+    defaultValue: {},
+    comment: 'Analyse de sentiment (positif, négatif, neutre)'
+  },
+  projets_correspondants: {
+    type: DataTypes.ARRAY(DataTypes.UUID),
+    defaultValue: [],
+    comment: 'IDs des vidéos/projets similaires'
+  },
+  statut_analyse_ia: {
+    type: DataTypes.ENUM('en_attente', 'en_cours', 'termine', 'erreur'),
+    defaultValue: 'en_attente',
+    comment: 'Statut de l\'analyse IA'
+  },
+  date_analyse_ia: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Date de la dernière analyse IA'
   }
 }, {
   tableName: 'videos',
@@ -137,6 +173,13 @@ const Video = sequelize.define('Video', {
     {
       fields: ['tags'],
       using: 'gin'
+    },
+    {
+      fields: ['mots_cles_ia'],
+      using: 'gin'
+    },
+    {
+      fields: ['statut_analyse_ia']
     }
   ]
 });
