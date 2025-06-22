@@ -21,7 +21,7 @@ const AISearch = () => {
         `/api/ai/search?keywords=${encodeURIComponent(searchKeywords)}&page=${page}&limit=12`,
         {
           headers: {
-            'Authorization': `Bearer ${user.token}`
+            'Authorization': user?.token ? `Bearer ${user.token}` : ''
           }
         }
       );
