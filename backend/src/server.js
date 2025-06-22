@@ -82,3 +82,9 @@ app.listen(PORT, '0.0.0.0', () => {
 
 module.exports = app;
 
+
+
+// Importer les modèles et les associations
+require('./models');
+
+
