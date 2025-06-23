@@ -14,9 +14,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// ✅ CORRECTION: Utiliser la variable d'environnement pour le bucket
-const BUCKET_NAME = process.env.BUCKET_NAME || 'pitch-videos';
-
 // Configuration Multer pour l'upload temporaire
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -71,9 +68,9 @@ const videoController = {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
       const filePath = `videos/${req.user.id}/${fileName}`;
 
-      // ✅ CORRECTION: Upload vers Supabase Storage avec le bon bucket
+      // Upload vers Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(BUCKET_NAME)
+        .from('videos')
         .upload(filePath, req.file.buffer, {
           contentType: req.file.mimetype,
           upsert: false
@@ -83,14 +80,13 @@ const videoController = {
         console.error('Erreur upload Supabase:', uploadError);
         return res.status(500).json({
           success: false,
-          message: 'Erreur lors de l\'upload du fichier',
-          error: uploadError.message
+          message: 'Erreur lors de l\'upload du fichier'
         });
       }
 
-      // ✅ CORRECTION: Obtenir l'URL publique avec le bon bucket
+      // Obtenir l'URL publique
       const { data: urlData } = supabase.storage
-        .from(BUCKET_NAME)
+        .from('videos')
         .getPublicUrl(filePath);
 
       // Créer l'enregistrement vidéo
@@ -133,7 +129,7 @@ const videoController = {
         }
       }
 
-      // Mettre à jour le statut à 'actif'
+      // Mettre à jour le statut à 'actif' (dans un vrai projet, cela se ferait après traitement)
       await video.update({ statut: 'actif' });
 
       const videoWithUser = await Video.findByPk(video.id, {
@@ -155,8 +151,7 @@ const videoController = {
       console.error('Erreur upload vidéo:', error);
       res.status(500).json({
         success: false,
-        message: 'Erreur serveur lors de l\'upload de la vidéo',
-        error: error.message
+        message: 'Erreur serveur lors de l\'upload de la vidéo'
       });
     }
   },
@@ -391,12 +386,12 @@ const videoController = {
         });
       }
 
-      // ✅ CORRECTION: Supprimer le fichier de Supabase Storage avec le bon bucket
+      // Supprimer le fichier de Supabase Storage
       const urlParts = video.url_video.split('/');
       const filePath = urlParts.slice(-3).join('/'); // Récupérer le chemin relatif
 
       await supabase.storage
-        .from(BUCKET_NAME)
+        .from('videos')
         .remove([filePath]);
 
       // Supprimer l'enregistrement de la base de données
