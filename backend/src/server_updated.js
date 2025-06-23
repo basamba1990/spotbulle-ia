@@ -6,7 +6,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
-const path = require('path'); // <-- AJOUTEZ CETTE LIGNE
+const path = require('path');
 
 const { connectDB } = require('./config/db');
 
@@ -15,6 +15,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const videoRoutes = require('./routes/videoRoutes');
+const analyseIARoutes = require('./routes/analyseIARoutes'); // Nouvelle route IA
 
 // Import des modèles pour établir les associations
 const User = require('./models/User');
@@ -81,19 +82,11 @@ app.use(compression());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(limiter);
 
-// --- DÉBUT DES CORRECTIONS À APPLIQUER DANS backend/src/server.js ---
+// Faire confiance aux en-têtes de proxy
+app.set('trust proxy', 1);
 
-// Ajoutez cette ligne pour faire confiance aux en-têtes de proxy
-// '1' signifie faire confiance au premier proxy (comme Render.com ou Cloudflare)
-// Cela permet à express-rate-limit et autres middlewares d'obtenir l'IP réelle du client.
-app.set('trust proxy', 1); // <-- AJOUTEZ CETTE LIGNE ICI
-
-// Servez les fichiers statiques (comme favicon.ico) depuis le dossier 'public'
-// Assurez-vous que le dossier 'public' existe à la racine de votre projet
-// (par exemple, au même niveau que le dossier 'backend').
-app.use(express.static(path.join(__dirname, '../../public'))); // <-- AJOUTEZ CETTE LIGNE ICI
-
-// --- FIN DES CORRECTIONS À APPLIQUER DANS backend/src/server.js ---
+// Servir les fichiers statiques
+app.use(express.static(path.join(__dirname, '../../public')));
 
 // Middlewares pour le parsing
 app.use(express.json({ limit: '50mb' }));
@@ -134,43 +127,34 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api/ia', analyseIARoutes); // Nouvelle route pour l'analyse IA
 
 // Routes de compatibilité (sans préfixe /api)
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/events', eventRoutes);
 app.use('/videos', videoRoutes);
-
-// Routes spécifiques pour les appels directs (correction urgente)
-const authController = require('./controllers/authController');
-const { body } = require('express-validator');
-
-const loginValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Email invalide'),
-  body('password').notEmpty().withMessage('Mot de passe requis')
-];
-
-const registerValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Email invalide'),
-  body('password').isLength({ min: 6 }).withMessage('Le mot de passe doit contenir au moins 6 caractères'),
-  body('nom').trim().isLength({ min: 2, max: 50 }).withMessage('Le nom doit contenir entre 2 et 50 caractères'),
-  body('prenom').trim().isLength({ min: 2, max: 50 }).withMessage('Le prénom doit contenir entre 2 et 50 caractères')
-];
-
-// app.post("/login", loginValidation, authController.login);
-// app.post("/register", registerValidation, authController.register);
+app.use('/ia', analyseIARoutes); // Compatibilité pour l'IA
 
 // Route par défaut
 app.get('/', (req, res) => {
   res.json({
-    message: 'API SpotBulle - Plateforme de partage vidéo',
-    version: '1.0.0',
+    message: 'API SpotBulle - Plateforme de partage vidéo avec IA',
+    version: '1.1.0',
     endpoints: {
       health: '/health',
       auth: '/api/auth',
       users: '/api/users',
       events: '/api/events',
-      videos: '/api/videos'
+      videos: '/api/videos',
+      ia: '/api/ia'
+    },
+    nouvelles_fonctionnalites: {
+      analyse_ia: 'Analyse automatique des pitchs vidéo',
+      transcription: 'Transcription audio vers texte',
+      mots_cles: 'Extraction automatique de mots-clés',
+      similarite: 'Recherche de projets similaires',
+      resume: 'Génération automatique de résumés'
     }
   });
 });
@@ -205,7 +189,8 @@ app.use('*', (req, res) => {
       auth: '/api/auth (POST /login, POST /register, GET /me)',
       videos: '/api/videos (GET /, GET /:id, POST /upload)',
       events: '/api/events (GET /, GET /:id, POST /)',
-      users: '/api/users (GET /profile, PUT /profile)'
+      users: '/api/users (GET /profile, PUT /profile)',
+      ia: '/api/ia (POST /videos/:id/analyser, GET /videos/:id/resultats, GET /videos/:id/similaires)'
     }
   });
 });
@@ -224,6 +209,7 @@ const startServer = async () => {
       console.log(`🚀 Serveur SpotBulle démarré sur le port ${PORT}`);
       console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📡 Health check: http://localhost:${PORT}/health`);
+      console.log(`🤖 Nouvelles fonctionnalités IA disponibles sur /api/ia`);
     });
   } catch (error) {
     console.error('❌ Erreur lors du démarrage du serveur:', error);
@@ -244,3 +230,4 @@ process.on('SIGINT', () => {
 
 // Démarrer le serveur
 startServer();
+
