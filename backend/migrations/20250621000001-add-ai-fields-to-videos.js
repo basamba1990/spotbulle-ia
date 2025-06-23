@@ -1,55 +1,51 @@
+
 'use strict';
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.addColumn('videos', 'transcription_ia', {
       type: Sequelize.TEXT,
-      allowNull: true,
-      comment: 'Transcription générée par IA'
+      allowNull: true
     });
 
     await queryInterface.addColumn('videos', 'mots_cles_ia', {
       type: Sequelize.ARRAY(Sequelize.STRING),
-      defaultValue: [],
-      comment: 'Mots-clés extraits par IA'
+      defaultValue: []
     });
 
     await queryInterface.addColumn('videos', 'score_pitch', {
       type: Sequelize.FLOAT,
-      allowNull: true,
-      comment: 'Score de qualité du pitch (0-100)'
+      allowNull: true
     });
 
     await queryInterface.addColumn('videos', 'analyse_sentiment', {
       type: Sequelize.JSONB,
-      defaultValue: {},
-      comment: 'Analyse de sentiment (positif, négatif, neutre)'
+      defaultValue: {}
     });
 
     await queryInterface.addColumn('videos', 'projets_correspondants', {
       type: Sequelize.ARRAY(Sequelize.UUID),
-      defaultValue: [],
-      comment: 'IDs des vidéos/projets similaires'
+      defaultValue: []
     });
 
     await queryInterface.addColumn('videos', 'statut_analyse_ia', {
       type: Sequelize.ENUM('en_attente', 'en_cours', 'termine', 'erreur'),
-      defaultValue: 'en_attente',
-      comment: 'Statut de l\'analyse IA'
+      defaultValue: 'en_attente'
     });
 
     await queryInterface.addColumn('videos', 'date_analyse_ia', {
       type: Sequelize.DATE,
-      allowNull: true,
-      comment: 'Date de la dernière analyse IA'
+      allowNull: true
     });
 
     // Ajouter des index pour optimiser les performances
+    // L'erreur 'syntax error at or near "USING"' peut être liée à la version de Sequelize/PostgreSQL
+    // ou à la combinaison avec les commentaires. Nous allons simplifier.
     await queryInterface.addIndex('videos', ['mots_cles_ia'], {
-      using: 'gin'
+      using: 'gin' // GIN index for ARRAY type
     });
 
-    await queryInterface.addIndex('videos', ['statut_analyse_ia']);
+    await queryInterface.addIndex('videos', ['statut_analyse_ia']); // Standard index for ENUM type
   },
 
   down: async (queryInterface, Sequelize) => {
@@ -70,4 +66,5 @@ module.exports = {
     await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_videos_statut_analyse_ia";');
   }
 };
+
 
