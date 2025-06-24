@@ -107,7 +107,7 @@ const userController = {
       // Si ce n'est pas l'utilisateur connecté, ne montrer que les vidéos publiques
       if (req.user?.id !== id) {
         whereClause.statut = 'actif';
-        whereClause['$parametres_confidentialite.public$'] = true;
+        whereClause["parametres_confidentialite.public"] = true;
       }
 
       const { count, rows: videos } = await Video.findAndCountAll({
