@@ -70,7 +70,7 @@ const videoController = {
 
       // Upload vers Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('videos')
+        .from('pitch-videos')
         .upload(filePath, req.file.buffer, {
           contentType: req.file.mimetype,
           upsert: false
@@ -86,7 +86,7 @@ const videoController = {
 
       // Obtenir l'URL publique
       const { data: urlData } = supabase.storage
-        .from('videos')
+        .from('pitch-videos')
         .getPublicUrl(filePath);
 
       // Créer l'enregistrement vidéo
@@ -391,7 +391,7 @@ const videoController = {
       const filePath = urlParts.slice(-3).join('/'); // Récupérer le chemin relatif
 
       await supabase.storage
-        .from('videos')
+        .from('pitch-videos')
         .remove([filePath]);
 
       // Supprimer l'enregistrement de la base de données
