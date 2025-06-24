@@ -154,6 +154,25 @@ const Video = sequelize.define('Video', {
     type: DataTypes.DATE,
     allowNull: true,
     comment: 'Date de la dernière analyse IA'
+  },
+  // Colonnes pour les événements et participations
+  evenement_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'events',
+      key: 'id'
+    },
+    comment: 'ID de l\'événement associé à cette vidéo'
+  },
+  participation_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'participations',
+      key: 'id'
+    },
+    comment: 'ID de la participation associée à cette vidéo'
   }
 }, {
   tableName: 'videos',
