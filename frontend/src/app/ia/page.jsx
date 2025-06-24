@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import RecommandationsProjets from '../../components/ia/RecommandationsProjets';
 import AnalyseIAResults from '../../components/ia/AnalyseIAResults';
@@ -146,7 +146,7 @@ function AnalyseMesVideos({ onShowAnalyse }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useState(() => {
+  useEffect(() => {
     chargerMesVideos();
   }, []);
 
@@ -297,7 +297,7 @@ function StatistiquesIA() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useState(() => {
+  useEffect(() => {
     chargerStatistiques();
   }, []);
 
