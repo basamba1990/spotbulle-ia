@@ -143,7 +143,8 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
         });
         
         onUploadSuccess?.(response.data.data.video);
-      }, 100      } catch (error) {
+      }, 100);
+      } catch (error) {
         setIsUploading(false);
         setUploadProgress(0);
         const errorData = apiUtils.handleError(error);
