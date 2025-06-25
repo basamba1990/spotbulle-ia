@@ -42,10 +42,7 @@ api.interceptors.response.use(
           break;
         case 401:
           errorMessage = data.message || "Session expirée ou non autorisée.";
-          // Empêcher la redirection automatique pour les requêtes d'upload de vidéo
-          if (error.config.url && error.config.url.includes("/api/videos/upload")) {
-            return Promise.reject(error); // Propager l'erreur pour une gestion spécifique
-          } else if (typeof window !== 'undefined') {
+          if (typeof window !== 'undefined' && error.config.url && !error.config.url.includes('/api/auth/login') && !error.config.url.includes('/api/auth/register') && !error.config.url.includes('/api/auth/me') && !error.config.url.includes('/ia/recommandations')) {
             window.location.href = '/login';
           }
           break;
