@@ -1,9 +1,9 @@
-const { validationResult } = require("express-validator");
-const { Op } = require("sequelize");
-const Event = require("../models/Event");
-const User = require("../models/User");
-const Video = require("../models/Video");
-const Participation = require("../models/Participation");
+const { validationResult } = require('express-validator');
+const { Op } = require('sequelize');
+const Event = require('../models/Event');
+const User = require('../models/User');
+const Video = require('../models/Video');
+const Participation = require('../models/Participation');
 
 const eventController = {
   // Créer un événement
@@ -13,7 +13,7 @@ const eventController = {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: "Données invalides",
+          message: 'Données invalides',
           errors: errors.array()
         });
       }
@@ -58,30 +58,30 @@ const eventController = {
       await Participation.create({
         user_id: req.user.id,
         evenement_id: event.id,
-        statut: "confirme",
-        role: "organisateur"
+        statut: 'confirme',
+        role: 'organisateur'
       });
 
       const eventWithOrganizer = await Event.findByPk(event.id, {
         include: [
           {
             model: User,
-            as: "organisateur",
-            attributes: ["id", "nom", "prenom", "avatar_url"]
+            as: 'organisateur',
+            attributes: ['id', 'nom', 'prenom', 'avatar_url']
           }
         ]
       });
 
       res.status(201).json({
         success: true,
-        message: "Événement créé avec succès",
+        message: 'Événement créé avec succès',
         data: { event: eventWithOrganizer }
       });
     } catch (error) {
-      console.error("Erreur création événement:", error);
+      console.error('Erreur création événement:', error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de la création de l'événement"
+        message: 'Erreur serveur lors de la création de l\'événement'
       });
     }
   },
@@ -126,7 +126,9 @@ const eventController = {
 
       // Ne montrer que les événements publics si l'utilisateur n'est pas connecté
       if (!req.user) {
-        whereClause["parametres.public"] = true; // Correction ici
+        whereClause.parametres = {
+          public: true
+        };
       }
 
       const { count, rows: events } = await Event.findAndCountAll({
@@ -134,11 +136,11 @@ const eventController = {
         include: [
           {
             model: User,
-            as: "organisateur",
-            attributes: ["id", "nom", "prenom", "avatar_url"]
+            as: 'organisateur',
+            attributes: ['id', 'nom', 'prenom', 'avatar_url']
           }
         ],
-        order: [["date_debut", "ASC"]],
+        order: [['date_debut', 'ASC']],
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
@@ -156,10 +158,10 @@ const eventController = {
         }
       });
     } catch (error) {
-      console.error("Erreur récupération événements:", error);
+      console.error('Erreur récupération événements:', error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de la récupération des événements"
+        message: 'Erreur serveur lors de la récupération des événements'
       });
     }
   },
@@ -173,8 +175,8 @@ const eventController = {
         include: [
           {
             model: User,
-            as: "organisateur",
-            attributes: ["id", "nom", "prenom", "avatar_url"]
+            as: 'organisateur',
+            attributes: ['id', 'nom', 'prenom', 'avatar_url']
           }
         ]
       });
@@ -182,7 +184,7 @@ const eventController = {
       if (!event) {
         return res.status(404).json({
           success: false,
-          message: "Événement introuvable"
+          message: 'Événement introuvable'
         });
       }
 
@@ -198,7 +200,7 @@ const eventController = {
         if (!participation && req.user.id !== event.organisateur_id) {
           return res.status(403).json({
             success: false,
-            message: "Accès refusé à cet événement privé"
+            message: 'Accès refusé à cet événement privé'
           });
         }
       }
@@ -208,10 +210,10 @@ const eventController = {
         data: { event }
       });
     } catch (error) {
-      console.error("Erreur récupération événement:", error);
+      console.error('Erreur récupération événement:', error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de la récupération de l'événement"
+        message: 'Erreur serveur lors de la récupération de l\'événement'
       });
     }
   },
@@ -223,7 +225,7 @@ const eventController = {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: "Données invalides",
+          message: 'Données invalides',
           errors: errors.array()
         });
       }
@@ -234,7 +236,7 @@ const eventController = {
       if (!event) {
         return res.status(404).json({
           success: false,
-          message: "Événement introuvable"
+          message: 'Événement introuvable'
         });
       }
 
@@ -242,7 +244,7 @@ const eventController = {
       if (event.organisateur_id !== req.user.id) {
         return res.status(403).json({
           success: false,
-          message: "Seul l'organisateur peut modifier cet événement"
+          message: 'Seul l\'organisateur peut modifier cet événement'
         });
       }
 
@@ -255,22 +257,22 @@ const eventController = {
         include: [
           {
             model: User,
-            as: "organisateur",
-            attributes: ["id", "nom", "prenom", "avatar_url"]
+            as: 'organisateur',
+            attributes: ['id', 'nom', 'prenom', 'avatar_url']
           }
         ]
       });
 
       res.json({
         success: true,
-        message: "Événement mis à jour avec succès",
+        message: 'Événement mis à jour avec succès',
         data: { event: updatedEvent }
       });
     } catch (error) {
-      console.error("Erreur mise à jour événement:", error);
+      console.error('Erreur mise à jour événement:', error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de la mise à jour de l'événement"
+        message: 'Erreur serveur lors de la mise à jour de l\'événement'
       });
     }
   },
@@ -284,7 +286,7 @@ const eventController = {
       if (!event) {
         return res.status(404).json({
           success: false,
-          message: "Événement introuvable"
+          message: 'Événement introuvable'
         });
       }
 
@@ -292,7 +294,7 @@ const eventController = {
       if (event.organisateur_id !== req.user.id) {
         return res.status(403).json({
           success: false,
-          message: "Seul l'organisateur peut supprimer cet événement"
+          message: 'Seul l\'organisateur peut supprimer cet événement'
         });
       }
 
@@ -300,13 +302,13 @@ const eventController = {
 
       res.json({
         success: true,
-        message: "Événement supprimé avec succès"
+        message: 'Événement supprimé avec succès'
       });
     } catch (error) {
-      console.error("Erreur suppression événement:", error);
+      console.error('Erreur suppression événement:', error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de la suppression de l'événement"
+        message: 'Erreur serveur lors de la suppression de l\'événement'
       });
     }
   },
@@ -321,7 +323,7 @@ const eventController = {
       if (!event) {
         return res.status(404).json({
           success: false,
-          message: "Événement introuvable"
+          message: 'Événement introuvable'
         });
       }
 
@@ -331,19 +333,19 @@ const eventController = {
         include: [
           {
             model: Participation,
-            as: "participation",
+            as: 'participation',
             where: { evenement_id: id },
             include: [
               {
                 model: User,
-                as: "user",
-                attributes: ["id", "nom", "prenom", "avatar_url"]
+                as: 'user',
+                attributes: ['id', 'nom', 'prenom', 'avatar_url']
               }
             ]
           }
         ],
-        where: { statut: "actif" },
-        order: [["date_upload", "DESC"]],
+        where: { statut: 'actif' },
+        order: [['date_upload', 'DESC']],
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
@@ -361,10 +363,10 @@ const eventController = {
         }
       });
     } catch (error) {
-      console.error("Erreur récupération vidéos événement:", error);
+      console.error('Erreur récupération vidéos événement:', error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de la récupération des vidéos"
+        message: 'Erreur serveur lors de la récupération des vidéos'
       });
     }
   },
@@ -379,7 +381,7 @@ const eventController = {
       if (!event) {
         return res.status(404).json({
           success: false,
-          message: "Événement introuvable"
+          message: 'Événement introuvable'
         });
       }
 
@@ -394,7 +396,7 @@ const eventController = {
       if (existingParticipation) {
         return res.status(400).json({
           success: false,
-          message: "Vous participez déjà à cet événement"
+          message: 'Vous participez déjà à cet événement'
         });
       }
 
@@ -403,14 +405,14 @@ const eventController = {
         const participantsCount = await Participation.count({
           where: {
             evenement_id: id,
-            statut: ["inscrit", "confirme", "present"]
+            statut: ['inscrit', 'confirme', 'present']
           }
         });
 
         if (participantsCount >= event.capacite_max) {
           return res.status(400).json({
             success: false,
-            message: "Événement complet"
+            message: 'Événement complet'
           });
         }
       }
@@ -419,24 +421,23 @@ const eventController = {
         user_id: req.user.id,
         evenement_id: id,
         commentaire,
-        statut: event.parametres?.inscription_requise ? "inscrit" : "confirme"
+        statut: event.parametres?.inscription_requise ? 'inscrit' : 'confirme'
       });
 
       res.status(201).json({
         success: true,
-        message: "Participation enregistrée avec succès",
+        message: 'Participation enregistrée avec succès',
         data: { participation }
       });
     } catch (error) {
-      console.error("Erreur participation événement:", error);
+      console.error('Erreur participation événement:', error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors de l'inscription à l'événement"
+        message: 'Erreur serveur lors de l\'inscription à l\'événement'
       });
     }
   }
 };
 
 module.exports = eventController;
-
 
