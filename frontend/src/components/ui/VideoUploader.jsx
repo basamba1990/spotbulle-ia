@@ -143,17 +143,19 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
         });
         
         onUploadSuccess?.(response.data.data.video);
-      }, 1000);
-
-    } catch (error) {
-      setIsUploading(false);
-      setUploadProgress(0);
-      const errorData = apiUtils.handleError(error);
-      setUploadError(errorData.message);
-    }
-  };
-
-  const removeFile = () => {
+      }, 100      } catch (error) {
+        setIsUploading(false);
+        setUploadProgress(0);
+        const errorData = apiUtils.handleError(error);
+        
+        if (error.response && error.response.status === 401) {
+          setUploadError("Votre session a expiré. Veuillez vous reconnecter pour télécharger des vidéos.");
+          // Optionnel: Rediriger l'utilisateur vers la page de connexion après un court délai
+          // setTimeout(() => { window.location.href = '/login'; }, 2000);
+        } else {
+          setUploadError(errorData.message);
+        }
+      }  const removeFile = () => {
     setSelectedFile(null);
     setUploadProgress(0);
   };
