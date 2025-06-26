@@ -86,8 +86,8 @@ app.set('trust proxy', 1);
 app.use(express.static(path.join(__dirname, '../../public')));
 
 // Middlewares pour le parsing avec limite de taille augmentée à 50MB
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Route de santé (ne nécessite pas de DB)
 app.get('/health', (req, res) => {
@@ -164,7 +164,7 @@ app.use((err, req, res, next) => {
   if (err.type === 'entity.too.large') {
     return res.status(413).json({
       success: false,
-      message: 'Fichier trop volumineux. Taille maximale: 50MB'
+      message: 'Fichier trop volumineux. Taille maximale: 100MB'
     });
   }
   
@@ -213,7 +213,7 @@ const startServer = async () => {
       console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📡 Health check: http://localhost:${PORT}/health`);
       console.log(`🤖 Nouvelles fonctionnalités IA disponibles sur /api/ia`);
-      console.log(`📦 Taille max des uploads: 50MB`);
+      console.log(`📦 Taille max des uploads: 100MB`);
     });
     
   } catch (error) {
