@@ -4,10 +4,8 @@
   "description": "Backend API pour SpotBulle",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server-simple.js",
-    "start:full": "node src/server-with-frontend.js",
-    "start:api-only": "node src/server.js",
-    "dev": "nodemon src/server-simple.js",
+    "start": "node src/server-with-frontend.js",
+    "dev": "nodemon src/server-with-frontend.js",
     "build": "echo 'No build step required'"
   },
   "dependencies": {
