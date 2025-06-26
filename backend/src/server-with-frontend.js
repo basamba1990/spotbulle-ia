@@ -74,7 +74,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || ['https://spotbulle-ia.onrender.com', 'http://localhost:3000'],
+  origin: process.env.FRONTEND_URL || ['https://spotbulle-ia.vercel.app', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -87,9 +87,9 @@ app.use(limiter);
 // Faire confiance aux en-têtes de proxy
 app.set('trust proxy', 1);
 
-// Middlewares pour le parsing
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Middlewares pour le parsing avec limite de taille augmentée à 100MB
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Route de santé (ne nécessite pas de DB)
 app.get('/health', (req, res) => {
@@ -143,16 +143,16 @@ const frontendPublicPath = path.join(frontendPath, 'public');
 
 // Servir les fichiers statiques Next.js
 if (fs.existsSync(nextStaticPath)) {
-  app.use('/_next/static', express.static(nextStaticPath));
-  app.use('/static', express.static(nextStaticPath));
+  app.use('/_next/static', express.static(nextStaticPath, { maxAge: '1y' }));
+  app.use('/static', express.static(nextStaticPath, { maxAge: '1y' }));
 }
 
 // Servir les fichiers statiques publics
 if (fs.existsSync(publicPath)) {
-  app.use(express.static(publicPath));
+  app.use(express.static(publicPath, { maxAge: '1d' }));
 }
 if (fs.existsSync(frontendPublicPath)) {
-  app.use(express.static(frontendPublicPath));
+  app.use(express.static(frontendPublicPath, { maxAge: '1d' }));
 }
 
 // Route pour servir le frontend Next.js pour toutes les routes non-API
@@ -336,12 +336,41 @@ app.get('/api', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('❌ Erreur serveur:', err);
   
+  // Gestion spécifique des erreurs de taille de payload
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      message: 'Fichier trop volumineux. Taille maximale: 1002MB'
+    });
+  }
+  
   res.status(err.status || 500).json({
     success: false,
     message: process.env.NODE_ENV === 'production' 
       ? 'Erreur interne du serveur' 
       : err.message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// Middleware pour les routes non trouvées
+app.use('*', (req, res) => {
+  console.log(`❌ Route non trouvée: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    success: false,
+    message: 'Route non trouvée',
+    path: req.originalUrl,
+    method: req.method,
+    suggestion: req.originalUrl.startsWith('/api/') 
+      ? 'Vérifiez que la route API existe' 
+      : `Essayez peut-être /api${req.originalUrl}`,
+    availableRoutes: {
+      auth: '/api/auth (POST /login, POST /register, GET /me)',
+      videos: '/api/videos (GET /, GET /:id, POST /upload)',
+      events: '/api/events (GET /, GET /:id, POST /)',
+      users: '/api/users (GET /profile, PUT /profile)',
+      ia: '/api/ia (POST /videos/:id/analyser, GET /videos/:id/resultats, GET /videos/:id/similaires)'
+    }
   });
 });
 
@@ -365,6 +394,7 @@ const startServer = async () => {
       console.log(`📡 Health check: http://localhost:${PORT}/health`);
       console.log(`🤖 Nouvelles fonctionnalités IA disponibles sur /api/ia`);
       console.log(`🎨 Frontend intégré disponible sur http://localhost:${PORT}/`);
+      console.log(`📦 Taille max des uploads: 50MB`);
     });
   } catch (error) {
     console.error('❌ Erreur lors du démarrage du serveur:', error);
@@ -385,4 +415,3 @@ process.on('SIGINT', () => {
 
 // Démarrer le serveur
 startServer();
-
