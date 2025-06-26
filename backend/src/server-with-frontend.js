@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 
 const { connectDB } = require('./config/db');
 
@@ -73,7 +74,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || ['https://spotbulle-ia.vercel.app', 'http://localhost:3000'],
+  origin: process.env.FRONTEND_URL || ['https://spotbulle-ia.onrender.com', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -135,12 +136,24 @@ app.use('/videos', videoRoutes);
 app.use('/ia', analyseIARoutes);
 
 // Servir les fichiers statiques Next.js
-app.use('/_next/static', express.static(path.join(__dirname, '../../frontend/.next/static')));
-app.use('/static', express.static(path.join(__dirname, '../../frontend/.next/static')));
+const frontendPath = path.join(__dirname, '../../frontend');
+const nextStaticPath = path.join(frontendPath, '.next/static');
+const publicPath = path.join(__dirname, '../../public');
+const frontendPublicPath = path.join(frontendPath, 'public');
+
+// Servir les fichiers statiques Next.js
+if (fs.existsSync(nextStaticPath)) {
+  app.use('/_next/static', express.static(nextStaticPath));
+  app.use('/static', express.static(nextStaticPath));
+}
 
 // Servir les fichiers statiques publics
-app.use(express.static(path.join(__dirname, '../../public')));
-app.use(express.static(path.join(__dirname, '../../frontend/public')));
+if (fs.existsSync(publicPath)) {
+  app.use(express.static(publicPath));
+}
+if (fs.existsSync(frontendPublicPath)) {
+  app.use(express.static(frontendPublicPath));
+}
 
 // Route pour servir le frontend Next.js pour toutes les routes non-API
 app.get('*', (req, res, next) => {
@@ -149,78 +162,145 @@ app.get('*', (req, res, next) => {
     return next();
   }
   
-  // Servir le fichier HTML principal du frontend
-  const htmlPath = path.join(__dirname, '../../frontend/.next/server/app');
+  // Chemin vers les fichiers HTML du build Next.js
+  const nextServerPath = path.join(frontendPath, '.next/server');
+  const nextAppPath = path.join(nextServerPath, 'app');
   
-  // Pour les routes dynamiques, servir la page appropriée
-  try {
-    if (req.path === '/' || req.path === '/index.html') {
-      res.sendFile(path.join(htmlPath, 'page.html'));
-    } else if (req.path === '/login') {
-      res.sendFile(path.join(htmlPath, '(auth)/login/page.html'));
-    } else if (req.path === '/register') {
-      res.sendFile(path.join(htmlPath, '(auth)/register/page.html'));
-    } else if (req.path === '/dashboard') {
-      res.sendFile(path.join(htmlPath, 'dashboard/page.html'));
-    } else if (req.path === '/ia') {
-      res.sendFile(path.join(htmlPath, 'ia/page.html'));
-    } else if (req.path === '/ia-simple') {
-      res.sendFile(path.join(htmlPath, 'ia-simple/page.html'));
-    } else if (req.path === '/upload') {
-      res.sendFile(path.join(htmlPath, 'upload/page.html'));
-    } else if (req.path === '/test-auth') {
-      res.sendFile(path.join(htmlPath, 'test-auth/page.html'));
-    } else if (req.path.startsWith('/events/')) {
-      res.sendFile(path.join(htmlPath, 'events/[id]/page.html'));
-    } else {
-      // Page par défaut
-      res.sendFile(path.join(htmlPath, 'page.html'));
+  // Fonction pour servir un fichier HTML s'il existe
+  const serveHtmlFile = (filePath) => {
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
     }
-  } catch (error) {
-    console.error('Erreur lors du service du frontend:', error);
-    // Fallback vers une réponse simple
-    res.status(200).send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>SpotBulle IA</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
-          .container { max-width: 800px; margin: 0 auto; }
-          .api-info { background: #f5f5f5; padding: 20px; border-radius: 8px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>🚀 SpotBulle IA - Plateforme de partage vidéo</h1>
-          <p>Bienvenue sur SpotBulle IA, la plateforme de partage vidéo avec intelligence artificielle.</p>
-          
-          <div class="api-info">
-            <h2>API Endpoints disponibles:</h2>
-            <ul>
-              <li><strong>GET /health</strong> - Vérification de l'état du serveur</li>
-              <li><strong>POST /api/auth/login</strong> - Connexion utilisateur</li>
-              <li><strong>POST /api/auth/register</strong> - Inscription utilisateur</li>
-              <li><strong>GET /api/videos</strong> - Liste des vidéos</li>
-              <li><strong>GET /api/events</strong> - Liste des événements</li>
-              <li><strong>POST /api/ia/videos/:id/analyser</strong> - Analyse IA d'une vidéo</li>
-            </ul>
+    return false;
+  };
+  
+  try {
+    let served = false;
+    
+    // Mapping des routes vers les fichiers HTML
+    if (req.path === '/' || req.path === '/index.html') {
+      served = serveHtmlFile(path.join(nextAppPath, 'page.html'));
+    } else if (req.path === '/login') {
+      served = serveHtmlFile(path.join(nextAppPath, '(auth)/login/page.html'));
+    } else if (req.path === '/register') {
+      served = serveHtmlFile(path.join(nextAppPath, '(auth)/register/page.html'));
+    } else if (req.path === '/dashboard') {
+      served = serveHtmlFile(path.join(nextAppPath, 'dashboard/page.html'));
+    } else if (req.path === '/ia') {
+      served = serveHtmlFile(path.join(nextAppPath, 'ia/page.html'));
+    } else if (req.path === '/ia-simple') {
+      served = serveHtmlFile(path.join(nextAppPath, 'ia-simple/page.html'));
+    } else if (req.path === '/upload') {
+      served = serveHtmlFile(path.join(nextAppPath, 'upload/page.html'));
+    } else if (req.path === '/test-auth') {
+      served = serveHtmlFile(path.join(nextAppPath, 'test-auth/page.html'));
+    } else if (req.path.startsWith('/events/')) {
+      served = serveHtmlFile(path.join(nextAppPath, 'events/[id]/page.html'));
+    }
+    
+    // Si aucun fichier HTML spécifique n'a été trouvé, essayer la page par défaut
+    if (!served) {
+      served = serveHtmlFile(path.join(nextAppPath, 'page.html'));
+    }
+    
+    // Si toujours pas de fichier HTML, servir une page de fallback
+    if (!served) {
+      console.log('⚠️  Aucun fichier HTML Next.js trouvé, utilisation du fallback');
+      res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>SpotBulle IA</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+              margin: 0; 
+              padding: 40px; 
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              min-height: 100vh;
+            }
+            .container { 
+              max-width: 800px; 
+              margin: 0 auto; 
+              background: rgba(255,255,255,0.1);
+              padding: 40px;
+              border-radius: 20px;
+              backdrop-filter: blur(10px);
+            }
+            .api-info { 
+              background: rgba(255,255,255,0.1); 
+              padding: 20px; 
+              border-radius: 12px; 
+              margin: 20px 0;
+            }
+            h1 { color: #fff; margin-bottom: 20px; }
+            h2 { color: #f0f0f0; }
+            a { color: #ffd700; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+            ul { list-style-type: none; padding: 0; }
+            li { margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; }
+            .status { 
+              display: inline-block; 
+              background: #4CAF50; 
+              color: white; 
+              padding: 4px 12px; 
+              border-radius: 20px; 
+              font-size: 12px; 
+              margin-left: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>🚀 SpotBulle IA - Plateforme de partage vidéo</h1>
+            <p>Bienvenue sur SpotBulle IA, la plateforme de partage vidéo avec intelligence artificielle.</p>
+            <p><span class="status">✅ Backend opérationnel</span></p>
+            
+            <div class="api-info">
+              <h2>🔗 API Endpoints disponibles:</h2>
+              <ul>
+                <li><strong>GET <a href="/health">/health</a></strong> - Vérification de l'état du serveur</li>
+                <li><strong>POST /api/auth/login</strong> - Connexion utilisateur</li>
+                <li><strong>POST /api/auth/register</strong> - Inscription utilisateur</li>
+                <li><strong>GET /api/videos</strong> - Liste des vidéos</li>
+                <li><strong>GET /api/events</strong> - Liste des événements</li>
+                <li><strong>POST /api/ia/videos/:id/analyser</strong> - Analyse IA d'une vidéo</li>
+              </ul>
+            </div>
+            
+            <p><a href="/api">📋 Voir toutes les routes API</a></p>
+            
+            <div class="api-info">
+              <h2>🤖 Nouvelles fonctionnalités IA:</h2>
+              <ul>
+                <li>Analyse automatique des pitchs vidéo</li>
+                <li>Transcription audio vers texte</li>
+                <li>Extraction automatique de mots-clés</li>
+                <li>Recherche de projets similaires</li>
+                <li>Génération automatique de résumés</li>
+              </ul>
+            </div>
           </div>
           
-          <p><a href="/api">Voir toutes les routes API</a></p>
-        </div>
-        
-        <script>
-          // Redirection automatique vers le frontend Vercel si disponible
-          if (window.location.hostname.includes('onrender.com')) {
-            console.log('Serveur backend opérationnel. Frontend disponible sur Vercel.');
-          }
-        </script>
-      </body>
-      </html>
-    `);
+          <script>
+            console.log('🚀 SpotBulle IA Backend - Version 1.1.0');
+            console.log('📡 API disponible sur:', window.location.origin + '/api');
+            console.log('🔍 Health check:', window.location.origin + '/health');
+          </script>
+        </body>
+        </html>
+      `);
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors du service du frontend:', error);
+    res.status(500).json({
+      error: 'Erreur interne du serveur',
+      message: 'Impossible de servir le frontend',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -229,6 +309,7 @@ app.get('/api', (req, res) => {
   res.json({
     message: 'API SpotBulle - Plateforme de partage vidéo avec IA',
     version: '1.1.0',
+    status: 'operational',
     endpoints: {
       health: '/health',
       auth: '/api/auth',
@@ -243,6 +324,10 @@ app.get('/api', (req, res) => {
       mots_cles: 'Extraction automatique de mots-clés',
       similarite: 'Recherche de projets similaires',
       resume: 'Génération automatique de résumés'
+    },
+    frontend: {
+      status: fs.existsSync(path.join(__dirname, '../../frontend/.next')) ? 'built' : 'not_built',
+      routes: ['/', '/login', '/register', '/dashboard', '/ia', '/ia-simple', '/upload', '/test-auth', '/events/:id']
     }
   });
 });
@@ -268,6 +353,10 @@ const startServer = async () => {
     
     // Connecter à la base de données (en mode dégradé si échec en production)
     await connectDB();
+    
+    // Vérifier si le frontend est buildé
+    const frontendBuilt = fs.existsSync(path.join(__dirname, '../../frontend/.next'));
+    console.log(`🎨 Frontend Next.js: ${frontendBuilt ? '✅ Buildé' : '⚠️  Non buildé'}`);
     
     // Démarrer le serveur
     app.listen(PORT, '0.0.0.0', () => {
