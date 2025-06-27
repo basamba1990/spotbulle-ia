@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const path = require('path');
+
 const { connectDB } = require('./config/db');
 
 // Import des routes
@@ -52,7 +53,9 @@ const setupAssociations = () => {
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limite chaque IP à 100 requêtes par windowMs
-  message: { error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.' }
+  message: {
+    error: 'Trop de requêtes depuis cette IP, veuillez réessayer plus tard.'
+  }
 });
 
 // Middlewares de sécurité et configuration
@@ -85,9 +88,9 @@ app.set('trust proxy', 1);
 // Servir les fichiers statiques
 app.use(express.static(path.join(__dirname, '../../public')));
 
-// Middlewares pour le parsing avec limite de taille augmentée à 50MB
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+// Middlewares pour le parsing
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Route de santé (ne nécessite pas de DB)
 app.get('/health', (req, res) => {
@@ -160,14 +163,6 @@ app.get('/', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('❌ Erreur serveur:', err);
   
-  // Gestion spécifique des erreurs de taille de payload
-  if (err.type === 'entity.too.large') {
-    return res.status(413).json({
-      success: false,
-      message: 'Fichier trop volumineux. Taille maximale: 100MB'
-    });
-  }
-  
   res.status(err.status || 500).json({
     success: false,
     message: process.env.NODE_ENV === 'production' 
@@ -180,6 +175,8 @@ app.use((err, req, res, next) => {
 // Middleware pour les routes non trouvées
 app.use('*', (req, res) => {
   console.log(`❌ Route non trouvée: ${req.method} ${req.originalUrl}`);
+  console.log(`Headers: ${JSON.stringify(req.headers, null, 2)}`);
+  
   res.status(404).json({
     success: false,
     message: 'Route non trouvée',
@@ -213,9 +210,7 @@ const startServer = async () => {
       console.log(`🌍 Environnement: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📡 Health check: http://localhost:${PORT}/health`);
       console.log(`🤖 Nouvelles fonctionnalités IA disponibles sur /api/ia`);
-      console.log(`📦 Taille max des uploads: 100MB`);
     });
-    
   } catch (error) {
     console.error('❌ Erreur lors du démarrage du serveur:', error);
     process.exit(1);
@@ -235,3 +230,4 @@ process.on('SIGINT', () => {
 
 // Démarrer le serveur
 startServer();
+
