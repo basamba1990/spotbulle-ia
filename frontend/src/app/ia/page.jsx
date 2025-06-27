@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import RecommandationsProjets from '../../components/ia/RecommandationsProjets';
 import AnalyseIAResults from '../../components/ia/AnalyseIAResults';
-import { videoAPI, apiUtils } from '../../lib/api';
 
 export default function IAPage() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('recommandations');
   const [selectedVideoId, setSelectedVideoId] = useState(null);
   const [showAnalyseModal, setShowAnalyseModal] = useState(false);
@@ -115,7 +114,6 @@ export default function IAPage() {
 
         {activeTab === 'analyse' && (
           <AnalyseMesVideos 
-            token={token}
             onShowAnalyse={(videoId) => {
               setSelectedVideoId(videoId);
               setShowAnalyseModal(true);
@@ -124,14 +122,13 @@ export default function IAPage() {
         )}
 
         {activeTab === 'statistiques' && (
-          <StatistiquesIA token={token} />
+          <StatistiquesIA />
         )}
       </div>
 
       {/* Modal d'analyse IA */}
       {showAnalyseModal && selectedVideoId && (
         <AnalyseIAResults
-          token={token}
           videoId={selectedVideoId}
           onClose={() => {
             setShowAnalyseModal(false);
@@ -144,31 +141,35 @@ export default function IAPage() {
 }
 
 // Composant pour l'analyse des vidéos de l'utilisateur
-function AnalyseMesVideos({ token, onShowAnalyse }) {
+function AnalyseMesVideos({ onShowAnalyse }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (token) chargerMesVideos();
-  }, [token]);
+  useState(() => {
+    chargerMesVideos();
+  }, []);
 
   const chargerMesVideos = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await videoAPI.getVideos({
-        userId: 'me',
-        include: 'analyse_ia_status'
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+
+      const response = await fetch('/api/videos', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
       });
-      
-      setVideos(response.data.videos || []);
-    } catch (error) {
-      const apiError = apiUtils.handleError(error);
-      setError(apiError.message || 'Erreur lors du chargement des vidéos');
+
+      if (!response.ok) {
+        throw new Error('Erreur lors du chargement des vidéos');
+      }
+
+      const data = await response.json();
+      setVideos(data.data.videos || []);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -235,7 +236,7 @@ function AnalyseMesVideos({ token, onShowAnalyse }) {
                      video.analyse_ia_status === 'echec' ? 'Échec' : 'En attente'}
                   </span>
                   <span className="text-sm text-gray-500">
-                    {apiUtils.formatDate(video.date_upload)}
+                    {new Date(video.date_upload).toLocaleDateString('fr-FR')}
                   </span>
                 </div>
 
@@ -264,11 +265,8 @@ function AnalyseMesVideos({ token, onShowAnalyse }) {
                 <button
                   onClick={() => onShowAnalyse(video.id)}
                   className="w-full btn btn-primary btn-sm"
-                  disabled={video.analyse_ia_status !== 'complete'}
                 >
-                  {video.analyse_ia_status === 'complete' 
-                    ? "Voir l'analyse IA" 
-                    : "Analyse en cours..."}
+                  Voir l'analyse IA
                 </button>
               </div>
             </div>
@@ -295,36 +293,31 @@ function AnalyseMesVideos({ token, onShowAnalyse }) {
 }
 
 // Composant pour les statistiques IA
-function StatistiquesIA({ token }) {
+function StatistiquesIA() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (token) chargerStatistiques();
-  }, [token]);
+  useState(() => {
+    chargerStatistiques();
+  }, []);
 
   const chargerStatistiques = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
+
       const response = await fetch('/api/ia/statistiques', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (response.ok) {
         const data = await response.json();
-        setStats(data.data?.statistiques || null);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Erreur lors du chargement des statistiques');
+        setStats(data.data.statistiques);
       }
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      console.error('Erreur lors du chargement des statistiques:', err);
     } finally {
       setLoading(false);
     }
@@ -335,15 +328,6 @@ function StatistiquesIA({ token }) {
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <span className="ml-3">Chargement des statistiques...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-        <strong className="font-bold">Erreur:</strong>
-        <span className="block sm:inline"> {error}</span>
       </div>
     );
   }
@@ -428,3 +412,4 @@ function StatistiquesIA({ token }) {
     </div>
   );
 }
+
