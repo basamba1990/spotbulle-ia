@@ -8,7 +8,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [uploadError, setUploadError] = useState(null); // Nouvel état pour les erreurs d'upload
+  const [uploadError, setUploadError] = useState(null);
   const [formData, setFormData] = useState({
     titre: '',
     description: '',
@@ -23,6 +23,9 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
   });
 
   const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+    // Réinitialiser les erreurs précédentes
+    setUploadError(null);
+    
     if (rejectedFiles.length > 0) {
       const error = rejectedFiles[0].errors[0];
       setUploadError(error.message);
@@ -32,6 +35,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
     const file = acceptedFiles[0];
     if (file) {
       try {
+        // Validation du fichier
         apiUtils.validateVideoFile(file);
         setSelectedFile(file);
         
@@ -47,7 +51,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
         setUploadError(error.message);
       }
     }
-  }, [formData.titre, onUploadError]);
+  }, [formData.titre]);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
@@ -55,7 +59,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
       'video/*': ['.mp4', '.avi', '.mov', '.wmv', '.webm'],
     },
     maxFiles: 1,
-    maxSize: parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 104857600, // 100MB
+    maxSize: parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 52428800, // 50MB
   });
 
   const handleInputChange = (e) => {
@@ -88,13 +92,19 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !formData.titre.trim()) {
-      setUploadError("Veuillez sélectionner un fichier et saisir un titre");
+    if (!selectedFile) {
+      setUploadError("Veuillez sélectionner un fichier vidéo");
+      return;
+    }
+    
+    if (!formData.titre.trim()) {
+      setUploadError("Veuillez saisir un titre pour votre vidéo");
       return;
     }
 
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadError(null);
 
     try {
       const uploadFormData = new FormData();
@@ -109,56 +119,58 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
         uploadFormData.append('evenement_id', formData.evenement_id);
       }
 
-      // Simuler le progrès d'upload (dans un vrai projet, utiliser onUploadProgress d'axios)
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + Math.random() * 10;
-        });
-      }, 500);
-
-      const response = await videoAPI.uploadVideo(uploadFormData);
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-        setSelectedFile(null);
-        setFormData({
-          titre: '',
-          description: '',
-          thematique: 'autre',
-          tags: [],
-          evenement_id: '',
-          parametres_confidentialite: {
-            public: true,
-            commentaires_autorises: true,
-            telechargement_autorise: false,
-          },
-        });
-        
-        onUploadSuccess?.(response.data.data.video);
-      }, 100);
-      } catch (error) {
-        setIsUploading(false);
-        setUploadProgress(0);
-        const errorData = apiUtils.handleError(error);
-        
-        if (error.response && error.response.status === 401) {
-          setUploadError("Votre session a expiré. Veuillez vous reconnecter pour télécharger des vidéos.");
-          // Optionnel: Rediriger l'utilisateur vers la page de connexion après un court délai
-          // setTimeout(() => { window.location.href = '/login'; }, 2000);
-        } else {
-          setUploadError(errorData.message);
+      // Configuration pour suivre la progression
+      const config = {
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setUploadProgress(percentCompleted);
         }
-      }  const removeFile = () => {
+      };
+
+      // Appel API avec gestion de la progression
+      const response = await videoAPI.uploadVideo(uploadFormData, config);
+      
+      // Réinitialiser le formulaire après succès
+      setFormData({
+        titre: '',
+        description: '',
+        thematique: 'autre',
+        tags: [],
+        evenement_id: '',
+        parametres_confidentialite: {
+          public: true,
+          commentaires_autorises: true,
+          telechargement_autorise: false,
+        },
+      });
+      
+      setSelectedFile(null);
+      setIsUploading(false);
+      
+      // Appeler le callback de succès
+      onUploadSuccess?.(response.data.data.video);
+    } catch (error) {
+      setIsUploading(false);
+      const errorData = apiUtils.handleError(error);
+      
+      if (error.response?.status === 401) {
+        setUploadError("Votre session a expiré. Veuillez vous reconnecter.");
+      } else if (error.response?.status === 413) {
+        setUploadError("Fichier trop volumineux. Taille maximale: 50MB");
+      } else {
+        setUploadError(errorData.message || "Échec du téléchargement. Veuillez réessayer.");
+      }
+      
+      onUploadError?.(errorData);
+    }
+  };
+
+  const removeFile = () => {
     setSelectedFile(null);
     setUploadProgress(0);
+    setUploadError(null);
   };
 
   const thematiques = [
@@ -180,7 +192,11 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
       {/* Zone de drop */}
       <div
         {...getRootProps()}
-        className={`dropzone ${isDragActive ? 'active' : ''} ${isDragReject ? 'reject' : ''}`}
+        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+          ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
+          ${isDragReject ? 'border-red-500 bg-red-50' : ''}
+          ${selectedFile ? 'border-green-500 bg-green-50' : ''}
+        `}
       >
         <input {...getInputProps()} />
         
@@ -222,7 +238,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
                 )}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                MP4, AVI, MOV, WMV, WebM jusqu'à 100MB
+                MP4, AVI, MOV, WMV, WebM jusqu'à 50MB
               </p>
             </div>
           </div>
@@ -234,7 +250,10 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
           <strong className="font-bold">Erreur:</strong>
           <span className="block sm:inline"> {uploadError}</span>
           <span className="absolute top-0 bottom-0 right-0 px-4 py-3">
-            <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" onClick={() => setUploadError(null)}><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+            <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" onClick={() => setUploadError(null)}>
+              <title>Close</title>
+              <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+            </svg>
           </span>
         </div>
       )}
@@ -244,7 +263,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Upload en cours...</span>
-            <span className="text-gray-600">{Math.round(uploadProgress)}%</span>
+            <span className="text-gray-600">{uploadProgress}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
@@ -267,7 +286,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
               id="titre"
               name="titre"
               required
-              className="input mt-1"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Donnez un titre à votre vidéo"
               value={formData.titre}
               onChange={handleInputChange}
@@ -282,7 +301,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
               id="description"
               name="description"
               rows={3}
-              className="textarea mt-1"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Décrivez votre vidéo..."
               value={formData.description}
               onChange={handleInputChange}
@@ -296,7 +315,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
             <select
               id="thematique"
               name="thematique"
-              className="input mt-1"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               value={formData.thematique}
               onChange={handleInputChange}
             >
@@ -316,7 +335,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
               type="text"
               id="tags"
               name="tags"
-              className="input mt-1"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="sport, compétition, équipe..."
               value={formData.tags.join(', ')}
               onChange={handleTagsChange}
@@ -331,7 +350,7 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
               type="text"
               id="evenement_id"
               name="evenement_id"
-              className="input mt-1"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="ID de l'événement"
               value={formData.evenement_id}
               onChange={handleInputChange}
@@ -389,17 +408,19 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
             <button
               type="button"
               onClick={removeFile}
-              className="btn btn-outline btn-md"
+              className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Annuler
             </button>
             <button
               type="button"
               onClick={handleUpload}
-              disabled={!formData.titre.trim()}
-              className="btn btn-primary btn-md disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!formData.titre.trim() || isUploading}
+              className={`px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                (!formData.titre.trim() || isUploading) ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Publier la vidéo
+              {isUploading ? 'Publication en cours...' : 'Publier la vidéo'}
             </button>
           </div>
         </div>
@@ -407,7 +428,3 @@ export default function VideoUploader({ onUploadSuccess, onUploadError }) {
     </div>
   );
 }
-
-
-}
-
