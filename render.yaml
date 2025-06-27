@@ -22,7 +22,9 @@ services:
       - key: DATABASE_URL
         sync: false # Ou true si vous utilisez un groupe de secrets
       - key: JWT_SECRET
-        sync: false
+        value: |-
+          #!/usr/bin/env bash
+          node backend/generate_jwt_secret.js
       - key: JWT_EXPIRES_IN
         value: "7d"
       - key: SUPABASE_URL
@@ -41,4 +43,3 @@ services:
 databases:
   - name: spotbulle-ia-db
     plan: basic-256mb
-
