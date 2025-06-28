@@ -45,12 +45,7 @@ export default function RecommandationsProjets() {
         params.append('thematiques', filtres.thematiques.join(','));
       }
 
-      const response = await fetch(`/api/ia/recommandations?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.get(`/ia/recommandations`, { params });
 
       if (!response.ok) {
         throw new Error('Erreur lors du chargement des recommandations');

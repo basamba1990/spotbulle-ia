@@ -19,12 +19,7 @@ export default function AnalyseIAResults({ videoId, onClose }) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/ia/videos/${videoId}/resultats`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.get(`/ia/videos/${videoId}/resultats`);
 
       if (!response.ok) {
         throw new Error('Erreur lors du chargement des résultats');
@@ -44,13 +39,7 @@ export default function AnalyseIAResults({ videoId, onClose }) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/ia/videos/${videoId}/analyser`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.post(`/ia/videos/${videoId}/analyser`);
 
       if (!response.ok) {
         throw new Error('Erreur lors du lancement de l\'analyse');
