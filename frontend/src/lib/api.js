@@ -168,6 +168,213 @@ export class ApiError extends Error {
 }
 
 /**
+ * API d'authentification - AJOUT MANQUANT
+ */
+export const authAPI = {
+  /**
+   * Connexion utilisateur
+   */
+  async login(credentials) {
+    return apiUtils.post('/api/auth/login', credentials);
+  },
+
+  /**
+   * Inscription utilisateur
+   */
+  async register(userData) {
+    return apiUtils.post('/api/auth/register', userData);
+  },
+
+  /**
+   * Déconnexion utilisateur
+   */
+  async logout() {
+    return apiUtils.post('/api/auth/logout');
+  },
+
+  /**
+   * Récupérer les informations de l'utilisateur connecté
+   */
+  async me() {
+    return apiUtils.get('/api/auth/me');
+  },
+
+  /**
+   * Rafraîchir le token d'authentification
+   */
+  async refreshToken() {
+    return apiUtils.post('/api/auth/refresh-token');
+  },
+
+  /**
+   * Vérifier si l'utilisateur est connecté
+   */
+  async checkAuth() {
+    try {
+      const response = await this.me();
+      return { isAuthenticated: true, user: response.data?.user };
+    } catch (error) {
+      return { isAuthenticated: false, user: null };
+    }
+  }
+};
+
+/**
+ * API des utilisateurs
+ */
+export const userAPI = {
+  /**
+   * Récupérer le profil d'un utilisateur
+   */
+  async getProfile(userId) {
+    return apiUtils.get(`/api/users/${userId}`);
+  },
+
+  /**
+   * Mettre à jour le profil utilisateur
+   */
+  async updateProfile(userData) {
+    return apiUtils.put('/api/users/profile', userData);
+  },
+
+  /**
+   * Récupérer les vidéos d'un utilisateur
+   */
+  async getUserVideos(userId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiUtils.get(`/api/users/${userId}/videos${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Récupérer les statistiques d'un utilisateur
+   */
+  async getUserStats(userId) {
+    return apiUtils.get(`/api/users/${userId}/stats`);
+  }
+};
+
+/**
+ * API des vidéos
+ */
+export const videoAPI = {
+  /**
+   * Récupérer la liste des vidéos
+   */
+  async getVideos(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiUtils.get(`/api/videos${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Récupérer une vidéo par ID
+   */
+  async getVideoById(videoId) {
+    return apiUtils.get(`/api/videos/${videoId}`);
+  },
+
+  /**
+   * Uploader une vidéo
+   */
+  async uploadVideo(formData) {
+    // Pour l'upload de fichier, on utilise FormData sans Content-Type
+    return apiUtils.request('/api/videos/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {} // Laisser le navigateur définir le Content-Type pour FormData
+    });
+  },
+
+  /**
+   * Mettre à jour une vidéo
+   */
+  async updateVideo(videoId, videoData) {
+    return apiUtils.put(`/api/videos/${videoId}`, videoData);
+  },
+
+  /**
+   * Supprimer une vidéo
+   */
+  async deleteVideo(videoId) {
+    return apiUtils.delete(`/api/videos/${videoId}`);
+  }
+};
+
+/**
+ * API des événements
+ */
+export const eventAPI = {
+  /**
+   * Récupérer la liste des événements
+   */
+  async getEvents(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiUtils.get(`/api/events${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Récupérer un événement par ID
+   */
+  async getEventById(eventId) {
+    return apiUtils.get(`/api/events/${eventId}`);
+  },
+
+  /**
+   * Créer un nouvel événement
+   */
+  async createEvent(eventData) {
+    return apiUtils.post('/api/events', eventData);
+  },
+
+  /**
+   * Mettre à jour un événement
+   */
+  async updateEvent(eventId, eventData) {
+    return apiUtils.put(`/api/events/${eventId}`, eventData);
+  },
+
+  /**
+   * Supprimer un événement
+   */
+  async deleteEvent(eventId) {
+    return apiUtils.delete(`/api/events/${eventId}`);
+  }
+};
+
+/**
+ * API de l'IA
+ */
+export const iaAPI = {
+  /**
+   * Récupérer les recommandations IA
+   */
+  async getRecommendations(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return apiUtils.get(`/api/ia/recommendations${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Lancer l'analyse IA d'une vidéo
+   */
+  async analyzeVideo(videoId) {
+    return apiUtils.post(`/api/ia/videos/${videoId}/analyser`);
+  },
+
+  /**
+   * Récupérer les résultats d'analyse IA d'une vidéo
+   */
+  async getVideoResults(videoId) {
+    return apiUtils.get(`/api/ia/videos/${videoId}/resultats`);
+  },
+
+  /**
+   * Récupérer les statistiques IA
+   */
+  async getStatistics() {
+    return apiUtils.get('/api/ia/statistiques');
+  }
+};
+
+/**
  * Endpoints API spécifiques
  */
 export const endpoints = {
@@ -176,7 +383,8 @@ export const endpoints = {
     login: '/api/auth/login',
     register: '/api/auth/register',
     logout: '/api/auth/logout',
-    profile: '/api/auth/profile'
+    me: '/api/auth/me',
+    refreshToken: '/api/auth/refresh-token'
   },
 
   // Utilisateurs
@@ -218,10 +426,16 @@ export const endpoints = {
 export const useApi = () => {
   return {
     apiUtils,
+    authAPI,
+    userAPI,
+    videoAPI,
+    eventAPI,
+    iaAPI,
     endpoints,
     ApiError
   };
 };
 
+// Export par défaut
 export default apiUtils;
 
