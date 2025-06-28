@@ -1,0 +1,134 @@
+# Fichier .gitignore sécurisé pour SpotBulle IA
+# À placer à la racine du projet et dans les dossiers frontend/backend
+
+# ===== SECRETS ET CONFIGURATION SENSIBLE =====
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+.env.backup
+*.env
+config/secrets.json
+config/production.json
+config/staging.json
+
+# ===== CLÉS ET CERTIFICATS =====
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+private/
+secrets/
+certs/
+
+# ===== LOGS ET DONNÉES TEMPORAIRES =====
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ===== DÉPENDANCES =====
+node_modules/
+jspm_packages/
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ===== CACHE ET BUILD =====
+.next/
+.nuxt/
+dist/
+build/
+out/
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+
+# ===== BASES DE DONNÉES =====
+*.sqlite
+*.sqlite3
+*.db
+database.json
+db_backup/
+dumps/
+
+# ===== UPLOADS ET MÉDIAS =====
+uploads/
+media/
+public/uploads/
+storage/
+temp/
+tmp/
+
+# ===== OUTILS DE DÉVELOPPEMENT =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== TESTS ET COUVERTURE =====
+coverage/
+.nyc_output/
+.coverage/
+*.lcov
+test-results/
+playwright-report/
+
+# ===== DÉPLOIEMENT =====
+.vercel
+.netlify/
+.serverless/
+.firebase/
+.aws/
+.gcp/
+
+# ===== SAUVEGARDES =====
+backup_*.json
+backup_*.sql
+*.backup
+*.bak
+
+# ===== FICHIERS SYSTÈME =====
+.env.example
+.env.template
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ===== SPÉCIFIQUE AU PROJET =====
+# Ajoutez ici les fichiers spécifiques à votre projet
+public/static/
+.next/static/
+pitch-videos/
+video-uploads/
+
+# ===== DOCUMENTATION SENSIBLE =====
+docs/deployment/
+docs/secrets/
+DEPLOYMENT_NOTES.md
+PRODUCTION_SETUP.md
+
+# ===== MONITORING ET ANALYTICS =====
+.sentry/
+newrelic.js
+datadog.yaml
+
+# ===== OUTILS DE SÉCURITÉ =====
+.snyk
+security-audit.json
+vulnerability-report.json
+
