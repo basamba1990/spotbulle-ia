@@ -41,12 +41,12 @@ const setupAssociations = () => {
 
   // Video associations
   Video.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-  Video.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement' });
+  Video.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement_video' });
   Video.belongsTo(Participation, { foreignKey: 'participation_id', as: 'participation' });
 
   // Participation associations
   Participation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-  Participation.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement' });
+  Participation.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement_lie' });
   Participation.hasMany(Video, { foreignKey: 'participation_id', as: 'videos' });
 };
 
