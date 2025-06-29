@@ -1,10 +1,12 @@
-const Video = require('../models/Video');
-const AnalyseIAService = require('../services/analyseIAService');
-const { validationResult } = require('express-validator');
+const Video = require("../models/Video");
+const AnalyseIAService = require("../services/analyseIAService");
+const { validationResult } = require("express-validator");
 
 class AnalyseIAController {
   constructor() {
     this.analyseService = new AnalyseIAService();
+    // Lier la méthode analyserVideoAsync à l'instance pour conserver le contexte 'this'
+    this.analyserVideoAsync = this.analyserVideoAsync.bind(this);
   }
 
   /**
@@ -16,8 +18,8 @@ class AnalyseIAController {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: 'Données invalides',
-          errors: errors.array()
+          message: "Données invalides",
+          errors: errors.array(),
         });
       }
 
@@ -28,28 +30,28 @@ class AnalyseIAController {
       const video = await Video.findOne({
         where: {
           id: videoId,
-          user_id: userId
-        }
+          user_id: userId,
+        },
       });
 
       if (!video) {
         return res.status(404).json({
           success: false,
-          message: 'Vidéo non trouvée'
+          message: "Vidéo non trouvée",
         });
       }
 
       // Vérifier que l'analyse n'est pas déjà en cours
-      if (video.analyse_ia_status === 'en_cours') {
+      if (video.analyse_ia_status === "en_cours") {
         return res.status(409).json({
           success: false,
-          message: 'Analyse déjà en cours pour cette vidéo'
+          message: "Analyse déjà en cours pour cette vidéo",
         });
       }
 
       // Marquer l'analyse comme en cours
       await video.update({
-        analyse_ia_status: 'en_cours'
+        analyse_ia_status: "en_cours",
       });
 
       // Lancer l'analyse en arrière-plan
@@ -57,18 +59,17 @@ class AnalyseIAController {
 
       res.json({
         success: true,
-        message: 'Analyse IA lancée',
+        message: "Analyse IA lancée",
         data: {
           videoId: video.id,
-          statut: 'en_cours'
-        }
+          statut: "en_cours",
+        },
       });
-
     } catch (error) {
-      console.error('Erreur lors du lancement de l\'analyse IA:', error);
+      console.error("Erreur lors du lancement de l'analyse IA:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur interne du serveur'
+        message: "Erreur interne du serveur",
       });
     }
   }
@@ -84,19 +85,25 @@ class AnalyseIAController {
       const video = await Video.findOne({
         where: {
           id: videoId,
-          user_id: userId
+          user_id: userId,
         },
         attributes: [
-          'id', 'titre', 'analyse_ia_status', 'transcription',
-          'mots_cles_ia', 'resume_ia', 'entites_nommees',
-          'score_qualite_pitch', 'date_analyse_ia'
-        ]
+          "id",
+          "titre",
+          "analyse_ia_status",
+          "transcription",
+          "mots_cles_ia",
+          "resume_ia",
+          "entites_nommees",
+          "score_qualite_pitch",
+          "date_analyse_ia",
+        ],
       });
 
       if (!video) {
         return res.status(404).json({
           success: false,
-          message: 'Vidéo non trouvée'
+          message: "Vidéo non trouvée",
         });
       }
 
@@ -112,16 +119,15 @@ class AnalyseIAController {
             resume: video.resume_ia,
             entites_nommees: video.entites_nommees,
             score_qualite: video.score_qualite_pitch,
-            date_analyse: video.date_analyse_ia
-          }
-        }
+            date_analyse: video.date_analyse_ia,
+          },
+        },
       });
-
     } catch (error) {
-      console.error('Erreur lors de la récupération des résultats:', error);
+      console.error("Erreur lors de la récupération des résultats:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur interne du serveur'
+        message: "Erreur interne du serveur",
       });
     }
   }
@@ -136,33 +142,43 @@ class AnalyseIAController {
 
       // Récupérer la vidéo de référence
       const videoRef = await Video.findByPk(videoId, {
-        attributes: ['id', 'titre', 'embedding_vector', 'analyse_ia_status']
+        attributes: ["id", "titre", "embedding_vector", "analyse_ia_status"],
       });
 
       if (!videoRef) {
         return res.status(404).json({
           success: false,
-          message: 'Vidéo non trouvée'
+          message: "Vidéo non trouvée",
         });
       }
 
-      if (videoRef.analyse_ia_status !== 'complete' || !videoRef.embedding_vector) {
+      if (
+        videoRef.analyse_ia_status !== "complete" ||
+        !videoRef.embedding_vector
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'L\'analyse IA de cette vidéo n\'est pas terminée'
+          message: "L'analyse IA de cette vidéo n'est pas terminée",
         });
       }
 
       // Récupérer toutes les vidéos avec embeddings
       const videosAvecEmbeddings = await Video.findAll({
         where: {
-          analyse_ia_status: 'complete',
-          embedding_vector: { [require('sequelize').Op.ne]: null }
+          analyse_ia_status: "complete",
+          embedding_vector: { [require("sequelize").Op.ne]: null },
         },
         attributes: [
-          'id', 'titre', 'description', 'thematique', 'embedding_vector',
-          'mots_cles_ia', 'score_qualite_pitch', 'vues', 'likes'
-        ]
+          "id",
+          "titre",
+          "description",
+          "thematique",
+          "embedding_vector",
+          "mots_cles_ia",
+          "score_qualite_pitch",
+          "vues",
+          "likes",
+        ],
       });
 
       // Calculer la similarité
@@ -173,7 +189,10 @@ class AnalyseIAController {
         if (video.id === videoId) continue; // Exclure la vidéo de référence
 
         const embedding = JSON.parse(video.embedding_vector);
-        const similarite = this.calculerSimilariteCosinus(videoRefEmbedding, embedding);
+        const similarite = this.calculerSimilariteCosinus(
+          videoRefEmbedding,
+          embedding
+        );
 
         videosSimilaires.push({
           id: video.id,
@@ -184,7 +203,7 @@ class AnalyseIAController {
           score_qualite: video.score_qualite_pitch,
           vues: video.vues,
           likes: video.likes,
-          score_similarite: similarite
+          score_similarite: similarite,
         });
       }
 
@@ -197,18 +216,17 @@ class AnalyseIAController {
         data: {
           video_reference: {
             id: videoRef.id,
-            titre: videoRef.titre
+            titre: videoRef.titre,
           },
           videos_similaires: resultats,
-          total: resultats.length
-        }
+          total: resultats.length,
+        },
       });
-
     } catch (error) {
-      console.error('Erreur lors de la recherche de similarité:', error);
+      console.error("Erreur lors de la recherche de similarité:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur interne du serveur'
+        message: "Erreur interne du serveur",
       });
     }
   }
@@ -223,11 +241,11 @@ class AnalyseIAController {
       const stats = await Video.findAll({
         where: { user_id: userId },
         attributes: [
-          'analyse_ia_status',
-          [require('sequelize').fn('COUNT', '*'), 'count']
+          "analyse_ia_status",
+          [require("sequelize").fn("COUNT", "*"), "count"],
         ],
-        group: ['analyse_ia_status'],
-        raw: true
+        group: ["analyse_ia_status"],
+        raw: true,
       });
 
       const statistiques = {
@@ -235,24 +253,23 @@ class AnalyseIAController {
         en_attente: 0,
         en_cours: 0,
         complete: 0,
-        echec: 0
+        echec: 0,
       };
 
-      stats.forEach(stat => {
+      stats.forEach((stat) => {
         statistiques[stat.analyse_ia_status] = parseInt(stat.count);
         statistiques.total += parseInt(stat.count);
       });
 
       res.json({
         success: true,
-        data: { statistiques }
+        data: { statistiques },
       });
-
     } catch (error) {
-      console.error('Erreur lors de la récupération des statistiques:', error);
+      console.error("Erreur lors de la récupération des statistiques:", error);
       res.status(500).json({
         success: false,
-        message: 'Erreur interne du serveur'
+        message: "Erreur interne du serveur",
       });
     }
   }
@@ -279,18 +296,22 @@ class AnalyseIAController {
         entites_nommees: resultats.entites_nommees,
         score_qualite_pitch: resultats.score_qualite,
         analyse_ia_status: resultats.statut,
-        date_analyse_ia: new Date()
+        date_analyse_ia: new Date(),
       });
 
-      console.log(`Analyse IA terminée pour la vidéo ${video.id} avec le statut: ${resultats.statut}`);
-
+      console.log(
+        `Analyse IA terminée pour la vidéo ${video.id} avec le statut: ${resultats.statut}`
+      );
     } catch (error) {
-      console.error(`Erreur lors de l'analyse IA de la vidéo ${video.id}:`, error);
+      console.error(
+        `Erreur lors de l'analyse IA de la vidéo ${video.id}:`,
+        error
+      );
 
       // Marquer l'analyse comme échouée
       await video.update({
-        analyse_ia_status: 'echec',
-        date_analyse_ia: new Date()
+        analyse_ia_status: "echec",
+        date_analyse_ia: new Date(),
       });
     }
   }
@@ -300,7 +321,7 @@ class AnalyseIAController {
    */
   calculerSimilariteCosinus(vecA, vecB) {
     if (vecA.length !== vecB.length) {
-      throw new Error('Les vecteurs doivent avoir la même dimension');
+      throw new Error("Les vecteurs doivent avoir la même dimension");
     }
 
     let dotProduct = 0;
@@ -325,4 +346,5 @@ class AnalyseIAController {
 }
 
 module.exports = new AnalyseIAController();
+
 
