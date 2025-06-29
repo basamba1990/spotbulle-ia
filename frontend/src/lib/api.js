@@ -1,442 +1,259 @@
 // src/lib/api.js
-// Utilitaires pour les appels API
+import axios from 'axios';
+import Cookies from 'js-cookie';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.onrender.com';
+// Définition de l'URL de base de l'API
+// Utilise la variable d'environnement NEXT_PUBLIC_API_URL,
+// ou un fallback si elle n'est pas définie.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.onrender.com/api';
 
-/**
- * Classe d'erreur API personnalisée
- */
-export class ApiError extends Error {
-  constructor(message, status, data = {}) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.data = data;
-  }
-
-  /**
-   * Vérifie si l'erreur est une erreur d'authentification (status 401)
-   */
-  isAuthError() {
-    return this.status === 401;
-  }
-
-  /**
-   * Vérifie si l'erreur est une erreur de validation (status 400 ou 422)
-   */
-  isValidationError() {
-    return this.status === 400 || this.status === 422;
-  }
-
-  /**
-   * Vérifie si l'erreur est une erreur serveur (status >= 500)
-   */
-  isServerError() {
-    return this.status >= 500;
-  }
-}
-
-// Helper pour la gestion des cookies, simulant js-cookie
-// Permet de lire, définir et supprimer des cookies de manière fiable.
-const cookieHelper = {
-  get: (name) => {
-    if (typeof document === 'undefined') return null; // S'assurer que nous sommes côté client
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for(let i=0; i < ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) === ' ') c = c.substring(1, c.length); // Supprimer les espaces en début de chaîne
-      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
+// Instance Axios configurée avec l'URL de base et un timeout
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 30000, // Timeout de 30 secondes pour les requêtes générales
+  headers: {
+    'Content-Type': 'application/json',
   },
-  set: (name, value, days) => {
-    if (typeof document === 'undefined') return; // S'assurer que nous sommes côté client
-    let expires = "";
-    if (days) {
-      const date = new Date();
-      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-      expires = "; expires=" + date.toUTCString();
-    }
-    // Le chemin '/' assure que le cookie est disponible sur tout le site
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-  },
-  remove: (name) => {
-    if (typeof document === 'undefined') return; // S'assurer que nous sommes côté client
-    // Pour supprimer un cookie, on le définit avec une date d'expiration passée
-    document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-  }
-};
+});
 
-
-/**
- * Utilitaire pour effectuer des requêtes API avec gestion d'erreur
- */
-export const apiUtils = {
-  /**
-   * Effectue une requête GET
-   */
-  async get(endpoint, options = {}) {
-    return this.request(endpoint, {
-      method: 'GET',
-      ...options
-    });
-  },
-
-  /**
-   * Effectue une requête POST
-   */
-  async post(endpoint, data, options = {}) {
-    return this.request(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(data),
-      ...options
-    });
-  },
-
-  /**
-   * Effectue une requête PUT
-   */
-  async put(endpoint, data, options = {}) {
-    return this.request(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-      ...options
-    });
-  },
-
-  /**
-   * Effectue une requête DELETE
-   */
-  async delete(endpoint, options = {}) {
-    return this.request(endpoint, {
-      method: 'DELETE',
-      ...options
-    });
-  },
-
-  /**
-   * Méthode générique pour les requêtes
-   */
-  async request(endpoint, options = {}) {
-    // Construit l'URL complète de l'API
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    
-    const defaultHeaders = {
-      'Content-Type': 'application/json',
-    };
-
-    // Ajoute le token d'authentification (Bearer Token) si disponible
-    // Utilise le cookie 'auth-token' comme le fait la version Axios avec js-cookie
-    const token = this.getAuthToken();
+// Intercepteur de requêtes : Ajoute le token d'authentification à chaque requête
+api.interceptors.request.use(
+  (config) => {
+    // Récupère le token 'auth-token' depuis les cookies
+    const token = Cookies.get('auth-token');
     if (token) {
-      defaultHeaders.Authorization = `Bearer ${token}`;
+      // Si un token existe, l'ajoute à l'en-tête Authorization au format Bearer
+      config.headers.Authorization = `Bearer ${token}`;
     }
-
-    const config = {
-      headers: {
-        ...defaultHeaders,
-        ...options.headers
-      },
-      ...options
-    };
-
-    // Gère spécifiquement les requêtes avec FormData (pour l'upload de fichiers)
-    // Le navigateur définira automatiquement le Content-Type approprié (multipart/form-data)
-    if (options.body instanceof FormData) {
-        delete config.headers['Content-Type']; 
-    }
-
-    try {
-      const response = await fetch(url, config);
-      
-      // Vérifie si la réponse HTTP est dans la plage 2xx (succès)
-      if (!response.ok) {
-        // Tente de parser le corps de la réponse comme JSON pour obtenir les détails de l'erreur
-        const errorData = await response.json().catch(() => ({}));
-        const apiError = new ApiError(
-          errorData.message || `Erreur HTTP ${response.status}`,
-          response.status,
-          errorData
-        );
-
-        // Gère la redirection pour les erreurs 401 (Non autorisé), comme dans la version Axios
-        if (apiError.isAuthError() && typeof window !== 'undefined') {
-          // Redirige vers la page de connexion
-          window.location.href = '/login';
-        }
-        throw apiError; // Relance l'erreur API personnalisée
-      }
-
-      // Retourne les données JSON si le Content-Type est JSON
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        return await response.json();
-      } else {
-        // Gère les réponses sans contenu JSON (ex: 204 No Content) ou autre type
-        return response.text(); // Ou `return {};` si vous préférez un objet vide
-      }
-      
-    } catch (error) {
-      // Si l'erreur est déjà une ApiError, la relance directement
-      if (error instanceof ApiError) {
-        throw error;
-      }
-      
-      // Capture les erreurs réseau (pas de réponse du serveur) ou autres erreurs inattendues
-      throw new ApiError(
-        'Erreur de connexion au serveur',
-        0, // Statut 0 pour les erreurs réseau
-        { originalError: error.message }
-      );
-    }
+    return config; // Retourne la configuration modifiée de la requête
   },
+  (error) => {
+    // Gère les erreurs lors de la configuration de la requête
+    return Promise.reject(error);
+  }
+);
 
-  /**
-   * Récupère le token d'authentification depuis le cookie 'auth-token'.
-   * Cette méthode est maintenant fiable grâce à `cookieHelper`.
-   */
-  getAuthToken() {
-    return cookieHelper.get('auth-token');
+// Intercepteur de réponses : Gère les réponses et les erreurs HTTP de manière centralisée
+api.interceptors.response.use(
+  (response) => {
+    // Si la réponse est un succès (code 2xx), la retourne directement
+    return response;
   },
+  (error) => {
+    // Si une erreur de réponse HTTP se produit
+    if (error.response) {
+      const { status, data } = error.response;
+      let errorMessage = data.message || `Erreur ${status} du serveur`;
 
-  /**
-   * Définit le token d'authentification dans le cookie 'auth-token'.
-   * Utile si le token est retourné dans le corps de la réponse après une connexion.
-   * Par défaut, le cookie expire après 7 jours.
-   */
-  setAuthToken(token, days = 7) {
-    cookieHelper.set('auth-token', token, days);
-    // Nettoie l'ancien stockage dans localStorage si utilisé précédemment
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-    }
-  },
-
-  /**
-   * Supprime le token d'authentification du cookie 'auth-token'.
-   */
-  removeAuthToken() {
-    cookieHelper.remove('auth-token');
-    // Nettoie l'ancien stockage dans localStorage si utilisé précédemment
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
+      // Logique de gestion des erreurs basée sur le code de statut HTTP
+      switch (status) {
+        case 400:
+          errorMessage = data.message || "Requête invalide.";
+          break;
+        case 401:
+          errorMessage = data.message || "Session expirée ou non autorisée.";
+          // Redirige vers la page de connexion en cas d'erreur 401
+          // Assurez-vous que cette logique est exécutée côté client (navigateur)
+          if (typeof window !== 'undefined') {
+            // Supprime le token invalide pour éviter des boucles de redirection
+            Cookies.remove('auth-token'); 
+            window.location.href = '/login';
+          }
+          break;
+        case 403:
+          errorMessage = data.message || "Accès refusé.";
+          break;
+        case 404:
+          errorMessage = data.message || "Ressource non trouvée.";
+          break;
+        case 500:
+          errorMessage = data.message || "Erreur interne du serveur. Veuillez réessayer plus tard.";
+          break;
+        default:
+          errorMessage = data.message || `Une erreur inattendue est survenue (Code: ${status}).`;
+      }
+      console.error(`Erreur API (${status}):`, errorMessage, data.errors);
+      // Rejette la promesse avec l'erreur de réponse pour que le code appelant puisse la gérer
+      return Promise.reject(error.response); 
+    } else if (error.request) {
+      // L'erreur est une absence de réponse du serveur (ex: réseau coupé)
+      console.error("Erreur réseau: Aucune réponse reçue.", error.message);
+      return Promise.reject(new Error("Erreur de connexion au serveur. Veuillez vérifier votre connexion internet."));
+    } else {
+      // L'erreur est due à la configuration de la requête elle-même
+      console.error("Erreur de configuration de la requête:", error.message);
+      return Promise.reject(new Error("Erreur lors de la préparation de la requête."));
     }
   }
-};
+);
 
-/**
- * API d'authentification
- */
+// --- API d'authentification ---
 export const authAPI = {
-  async login(credentials) {
-    const response = await apiUtils.post('/api/auth/login', credentials);
-    // Si le serveur renvoie le token dans le corps de la réponse, vous pouvez le définir ici.
-    // Si le serveur définit le cookie 'auth-token' via un en-tête Set-Cookie, cette ligne n'est pas nécessaire.
-    // Exemple: if (response.token) apiUtils.setAuthToken(response.token);
-    return response;
-  },
-
-  async register(userData) {
-    const response = await apiUtils.post('/api/auth/register', userData);
-    // Similaire à login, si le token est dans le corps de la réponse.
-    // Exemple: if (response.token) apiUtils.setAuthToken(response.token);
-    return response;
-  },
-
-  async logout() {
-    // La déconnexion côté serveur devrait invalider le token.
-    // On supprime aussi le cookie côté client.
-    const response = await apiUtils.post('/api/auth/logout');
-    apiUtils.removeAuthToken();
-    return response;
-  },
-
-  async me() {
-    return apiUtils.get('/api/auth/me');
-  },
-
-  async refreshToken() {
-    return apiUtils.post('/api/auth/refresh-token');
-  },
-
-  async checkAuth() {
-    try {
-      const response = await this.me();
-      return { isAuthenticated: true, user: response.data?.user };
-    } catch (error) {
-      // Si l'erreur est une erreur d'authentification, cela signifie que l'utilisateur n'est pas connecté.
-      if (error instanceof ApiError && error.isAuthError()) {
-        apiUtils.removeAuthToken(); // S'assurer que le token invalide est supprimé
-      }
-      return { isAuthenticated: false, user: null };
-    }
-  }
+  register: (userData) => api.post("/auth/register", userData),
+  login: (credentials) => api.post("/auth/login", credentials),
+  logout: () => api.post('/auth/logout'),
+  me: () => api.get('/auth/me'),
+  refreshToken: () => api.post('/auth/refresh-token'),
 };
 
-/**
- * API des utilisateurs
- */
+// --- API des utilisateurs ---
 export const userAPI = {
-  async getProfile(userId) {
-    return apiUtils.get(`/api/users/${userId}`);
-  },
-
-  async updateProfile(userData) {
-    return apiUtils.put('/api/users/profile', userData);
-  },
-
-  async getUserVideos(userId, params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return apiUtils.get(`/api/users/${userId}/videos${queryString ? `?${queryString}` : ''}`);
-  },
-
-  async getUserStats(userId) {
-    return apiUtils.get(`/api/users/${userId}/stats`);
-  }
+  getProfile: (userId) => api.get(`/users/${userId}`),
+  updateProfile: (userData) => api.put("/users/profile", userData),
+  getUserVideos: (userId, params = {}) => api.get(`/users/${userId}/videos`, { params }),
+  getUserStats: (userId) => api.get(`/users/${userId}/stats`),
+  searchUsers: (params = {}) => api.get('/users/search', { params }),
 };
 
-/**
- * API des vidéos
- */
+// --- API des événements ---
+export const eventAPI = {
+  getEvents: (params = {}) => api.get("/events", { params }),
+  getEventById: (eventId) => api.get(`/events/${eventId}`),
+  createEvent: (eventData) => api.post("/events", eventData),
+  updateEvent: (eventId, eventData) => api.put(`/events/${eventId}`, eventData),
+  deleteEvent: (eventId) => api.delete(`/events/${eventId}`),
+  getEventVideos: (eventId, params = {}) => api.get(`/events/${eventId}/videos`, { params }),
+  joinEvent: (eventId, data = {}) => api.post(`/events/${eventId}/join`, data),
+};
+
+// --- API des vidéos ---
 export const videoAPI = {
-  async getVideos(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return apiUtils.get(`/api/videos${queryString ? `?${queryString}` : ''}`);
+  getVideos: (params = {}) => api.get("/videos", { params }),
+  getVideoById: (videoId) => api.get(`/videos/${videoId}`),
+  uploadVideo: (formData) => api.post("/videos/upload", formData, {
+    headers: {
+      // Axios gère automatiquement le Content-Type pour FormData,
+      // mais le spécifier explicitement peut être utile pour la clarté.
+      'Content-Type': 'multipart/form-data', 
+    },
+    timeout: 300000, // Timeout étendu à 5 minutes pour l'upload de fichiers volumineux
+  }),
+  updateVideo: (videoId, videoData) => api.put(`/videos/${videoId}`, videoData),
+  deleteVideo: (videoId) => api.delete(`/videos/${videoId}`),
+  toggleLike: (videoId, action) => api.post(`/videos/${videoId}/like`, { action }),
+};
+
+// --- API de l'IA ---
+export const aiAPI = {
+  searchVideos: (keywords, page = 1, limit = 12) => api.get(`/ai/search?keywords=${encodeURIComponent(keywords)}&page=${page}&limit=${limit}`),
+};
+
+// --- Utilitaires API ---
+export const apiUtils = {
+  // Fonction utilitaire pour gérer les erreurs renvoyées par les intercepteurs
+  handleError: (error) => {
+    if (error.response) {
+      return {
+        message: error.response.data?.message || 'Erreur serveur',
+        status: error.response.status,
+        errors: error.response.data?.errors || [],
+      };
+    } else if (error.request) {
+      return {
+        message: 'Erreur de connexion au serveur',
+        status: 0, // Statut 0 pour les erreurs réseau
+        errors: [],
+      };
+    } else {
+      return {
+        message: error.message || 'Erreur inconnue',
+        status: 0,
+        errors: [],
+      };
+    }
   },
 
-  async getVideoById(videoId) {
-    return apiUtils.get(`/api/videos/${videoId}`);
+  // Formatage des paramètres de pagination
+  formatPaginationParams: (page = 1, limit = 10, filters = {}) => {
+    return {
+      page,
+      limit,
+      ...filters,
+    };
   },
 
-  async uploadVideo(formData) {
-    // Pour l'upload de fichier, on utilise FormData.
-    // Le Content-Type sera automatiquement défini par le navigateur.
-    return apiUtils.request('/api/videos/upload', {
-      method: 'POST',
-      body: formData,
-      // Pas besoin de définir 'Content-Type' ici pour FormData
+  // Validation des fichiers vidéo avant upload
+  validateVideoFile: (file) => {
+    const allowedTypes = process.env.NEXT_PUBLIC_ALLOWED_VIDEO_TYPES?.split(',') || [
+      'video/mp4',
+      'video/avi',
+      'video/mov',
+      'video/wmv',
+      'video/webm'
+    ];
+    
+    // Mise à jour de la taille maximale à 250 Mo (250 * 1024 * 1024 octets)
+    const maxSize = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 262144000; // 250MB
+
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Type de fichier non autorisé');
+    }
+
+    if (file.size > maxSize) {
+      throw new Error(`Fichier trop volumineux. La taille maximale est de ${apiUtils.formatFileSize(maxSize)}.`);
+    }
+
+    return true;
+  },
+
+  // Formatage des URLs d'images
+  formatImageUrl: (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    // Assurez-vous que API_URL est correctement défini pour les assets
+    return `${API_URL.replace('/api', '')}${url}`; // Retire '/api' de l'URL de base pour les assets
+  },
+
+  // Formatage des dates
+  formatDate: (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   },
 
-  async updateVideo(videoId, videoData) {
-    return apiUtils.put(`/api/videos/${videoId}`, videoData);
+  // Formatage des dates et heures
+  formatDateTime: (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   },
 
-  async deleteVideo(videoId) {
-    return apiUtils.delete(`/api/videos/${videoId}`);
-  }
+  // Formatage de la durée en secondes en format HH:MM:SS ou MM:SS
+  formatDuration: (seconds) => {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    const paddedMinutes = minutes.toString().padStart(2, '0');
+    const paddedSeconds = remainingSeconds.toString().padStart(2, '0');
+
+    if (hours > 0) {
+      return `${hours}:${paddedMinutes}:${paddedSeconds}`;
+    }
+    
+    return `${minutes}:${paddedSeconds}`;
+  },
+
+  // Formatage de la taille des fichiers en octets
+  formatFileSize: (bytes) => {
+    if (isNaN(bytes) || bytes < 0) return '0 B';
+    
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  },
 };
 
-/**
- * API des événements
- */
-export const eventAPI = {
-  async getEvents(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return apiUtils.get(`/api/events${queryString ? `?${queryString}` : ''}`);
-  },
-
-  async getEventById(eventId) {
-    return apiUtils.get(`/api/events/${eventId}`);
-  },
-
-  async createEvent(eventData) {
-    return apiUtils.post('/api/events', eventData);
-  },
-
-  async updateEvent(eventId, eventData) {
-    return apiUtils.put(`/api/events/${eventId}`, eventData);
-  },
-
-  async deleteEvent(eventId) {
-    return apiUtils.delete(`/api/events/${eventId}`);
-  }
-};
-
-/**
- * API de l'IA
- */
-export const iaAPI = {
-  async getRecommendations(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return apiUtils.get(`/api/ia/recommendations${queryString ? `?${queryString}` : ''}`);
-  },
-
-  async analyzeVideo(videoId) {
-    return apiUtils.post(`/api/ia/videos/${videoId}/analyser`);
-  },
-
-  async getVideoResults(videoId) {
-    return apiUtils.get(`/api/ia/videos/${videoId}/resultats`);
-  },
-
-  async getStatistics() {
-    return apiUtils.get('/api/ia/statistiques');
-  }
-};
-
-/**
- * Endpoints API spécifiques
- */
-export const endpoints = {
-  // Authentification
-  auth: {
-    login: '/api/auth/login',
-    register: '/api/auth/register',
-    logout: '/api/auth/logout',
-    me: '/api/auth/me',
-    refreshToken: '/api/auth/refresh-token'
-  },
-
-  // Utilisateurs
-  users: {
-    profile: (id) => `/api/users/${id}`,
-    stats: (id) => `/api/users/${id}/stats`,
-    videos: (id) => `/api/users/${id}/videos`
-  },
-
-  // Vidéos
-  videos: {
-    list: '/api/videos',
-    detail: (id) => `/api/videos/${id}`,
-    upload: '/api/videos/upload',
-    delete: (id) => `/api/videos/${id}`
-  },
-
-  // Événements
-  events: {
-    list: '/api/events',
-    detail: (id) => `/api/events/${id}`,
-    create: '/api/events',
-    update: (id) => `/api/events/${id}`,
-    delete: (id) => `/api/events/${id}`
-  },
-
-  // IA
-  ia: {
-    recommendations: '/api/ia/recommendations',
-    analyzeVideo: (id) => `/api/ia/videos/${id}/analyser`,
-    videoResults: (id) => `/api/ia/videos/${id}/resultats`,
-    statistics: '/api/ia/statistiques'
-  }
-};
-
-/**
- * Hooks et utilitaires React pour l'API
- */
-export const useApi = () => {
-  return {
-    apiUtils,
-    authAPI,
-    userAPI,
-    videoAPI,
-    eventAPI,
-    iaAPI,
-    endpoints,
-    ApiError
-  };
-};
-
-// Export par défaut
-export default apiUtils;
+// Export par défaut de l'instance Axios configurée
+export default api;
