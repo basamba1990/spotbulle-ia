@@ -377,7 +377,7 @@ export const iaAPI = {
 };
 
 /**
- * Endpoints API spécifiques (inchangé)
+ * Endpoints API spécifiques
  */
 export const endpoints = {
   // Authentification
@@ -423,8 +423,20 @@ export const endpoints = {
 };
 
 /**
- * Hooks et utilitaires React pour l'API (inchangé)
+ * Hooks et utilitaires React pour l'API
  */
 export const useApi = () => {
   return {
     apiUtils,
+    authAPI,
+    userAPI,
+    videoAPI,
+    eventAPI,
+    iaAPI,
+    endpoints,
+    ApiError
+  };
+};
+
+// Export par défaut
+export default apiUtils;
