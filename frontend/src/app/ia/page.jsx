@@ -1,9 +1,11 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import RecommandationsProjets from '../../components/ia/RecommandationsProjets';
 import AnalyseIAResults from '../../components/ia/AnalyseIAResults';
+import api from '../../lib/api'; // Import the api instance
 
 export default function IAPage() {
   const { user } = useAuth();
@@ -145,31 +147,25 @@ function AnalyseMesVideos({ onShowAnalyse }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useAuth(); // Get user from AuthContext
 
   useEffect(() => {
-    chargerMesVideos();
-  }, []);
+    if (user) { // Only fetch if user is logged in
+      chargerMesVideos();
+    }
+  }, [user]);
 
   const chargerMesVideos = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
+      // Use the imported 'api' instance
+      const response = await api.get(`/users/${user.id}/videos`); // Assuming /videos endpoint returns user's videos
 
-      const response = await fetch('/api/videos', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors du chargement des vidéos');
-      }
-
-      const data = await response.json();
-      setVideos(data.data.videos || []);
+      setVideos(response.data.data.videos || []);
     } catch (err) {
-      setError(err.message);
+      console.error('Erreur lors du chargement des vidéos:', err);
+      setError(err.response?.data?.message || err.message || 'Erreur inconnue lors du chargement des vidéos.');
     } finally {
       setLoading(false);
     }
@@ -296,28 +292,26 @@ function AnalyseMesVideos({ onShowAnalyse }) {
 function StatistiquesIA() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // Add error state
+  const { user } = useAuth(); // Get user from AuthContext
 
   useEffect(() => {
-    chargerStatistiques();
-  }, []);
+    if (user) { // Only fetch if user is logged in
+      chargerStatistiques();
+    }
+  }, [user]);
 
   const chargerStatistiques = async () => {
+    setLoading(true);
+    setError(null); // Clear previous errors
     try {
-      setLoading(true);
+      // Use the imported 'api' instance
+      const response = await api.get('/ia/statistiques');
 
-      const response = await fetch('/api/ia/statistiques', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.data.statistiques);
-      }
+      setStats(response.data.data.statistiques);
     } catch (err) {
       console.error('Erreur lors du chargement des statistiques:', err);
+      setError(err.response?.data?.message || err.message || 'Erreur inconnue lors du chargement des statistiques.');
     } finally {
       setLoading(false);
     }
@@ -328,6 +322,15 @@ function StatistiquesIA() {
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <span className="ml-3">Chargement des statistiques...</span>
+      </div>
+    );
+  }
+
+  if (error) { // Display error message if there's an error
+    return (
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <strong className="font-bold">Erreur:</strong>
+        <span className="block sm:inline"> {error}</span>
       </div>
     );
   }
@@ -412,4 +415,6 @@ function StatistiquesIA() {
     </div>
   );
 }
+
+
 
