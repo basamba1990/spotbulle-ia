@@ -31,23 +31,23 @@ const PORT = process.env.PORT || 10000;
 const setupAssociations = () => {
   // User associations
   User.hasMany(Event, { foreignKey: 'organisateur_id', as: 'evenements_organises' });
-  User.hasMany(Video, { foreignKey: 'user_id', as: 'videos' });
-  User.hasMany(Participation, { foreignKey: 'user_id', as: 'participations' });
+  User.hasMany(Video, { foreignKey: 'user_id', as: 'user_videos' });
+  User.hasMany(Participation, { foreignKey: 'user_id', as: 'user_participations' });
 
   // Event associations
   Event.belongsTo(User, { foreignKey: 'organisateur_id', as: 'organisateur' });
-  Event.hasMany(Participation, { foreignKey: 'evenement_id', as: 'participations' });
-  Event.hasMany(Video, { foreignKey: 'evenement_id', as: 'videos' });
+  Event.hasMany(Participation, { foreignKey: 'evenement_id', as: 'event_participations' });
+  Event.hasMany(Video, { foreignKey: 'evenement_id', as: 'event_videos' });
 
   // Video associations
-  Video.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  Video.belongsTo(User, { foreignKey: 'user_id', as: 'video_user' });
   Video.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement_video' });
-  Video.belongsTo(Participation, { foreignKey: 'participation_id', as: 'participation' });
+  Video.belongsTo(Participation, { foreignKey: 'participation_id', as: 'video_participation_link' });
 
   // Participation associations
-  Participation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  Participation.belongsTo(User, { foreignKey: 'user_id', as: 'participation_user' });
   Participation.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement_lie' });
-  Participation.hasMany(Video, { foreignKey: 'participation_id', as: 'videos' });
+  Participation.hasMany(Video, { foreignKey: 'participation_id', as: 'participation_videos_link' });
 };
 
 // Configuration du rate limiting
