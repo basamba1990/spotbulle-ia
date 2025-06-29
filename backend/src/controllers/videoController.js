@@ -49,3 +49,17 @@ const videoController = {
 
       if (!req.file) {
 
+
+
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'upload de la vidéo:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Erreur serveur lors de l'upload de la vidéo.",
+        error: error.message
+      });
+    }
+  },
+};
+
