@@ -106,7 +106,7 @@ router.post(
   "/videos/:videoId/analyser",
   authMiddleware,
   uuidValidation,
-  analyseIAControllerInstance.lancerAnalyse
+  analyseIAControllerInstance.lancerAnalyse.bind(analyseIAControllerInstance)
 );
 
 /**
@@ -118,7 +118,7 @@ router.get(
   "/videos/:videoId/resultats",
   authMiddleware,
   uuidValidation,
-  analyseIAControllerInstance.obtenirResultatsAnalyse
+  analyseIAControllerInstance.obtenirResultatsAnalyse.bind(analyseIAControllerInstance)
 );
 
 /**
@@ -130,7 +130,7 @@ router.get(
   "/videos/:videoId/similaires",
   authMiddleware,
   similariteValidation,
-  analyseIAControllerInstance.rechercherVideosSimilaires
+  analyseIAControllerInstance.rechercherVideosSimilaires.bind(analyseIAControllerInstance)
 );
 
 /**
@@ -141,7 +141,7 @@ router.get(
 router.get(
   "/statistiques",
   authMiddleware,
-  analyseIAControllerInstance.obtenirStatistiquesIA
+  analyseIAControllerInstance.obtenirStatistiquesIA.bind(analyseIAControllerInstance)
 );
 
 // ===== ROUTES DE MISE EN CORRESPONDANCE =====
@@ -155,7 +155,7 @@ router.get(
   "/projets/:videoId/similaires",
   authMiddleware,
   similariteValidation,
-  miseEnCorrespondanceControllerInstance.rechercherProjetsSimilaires
+  miseEnCorrespondanceControllerInstance.rechercherProjetsSimilaires.bind(miseEnCorrespondanceControllerInstance)
 );
 
 /**
@@ -167,7 +167,7 @@ router.get(
   "/recommandations",
   authMiddleware,
   recommendationValidation,
-  miseEnCorrespondanceControllerInstance.recommanderProjets
+  miseEnCorrespondanceControllerInstance.recommanderProjets.bind(miseEnCorrespondanceControllerInstance)
 );
 
 /**
@@ -179,7 +179,7 @@ router.get(
   "/projets/:videoId/collaborateurs",
   authMiddleware,
   similariteValidation,
-  miseEnCorrespondanceControllerInstance.trouverCollaborateurs
+  miseEnCorrespondanceControllerInstance.trouverCollaborateurs.bind(miseEnCorrespondanceControllerInstance)
 );
 
 /**
@@ -191,7 +191,7 @@ router.get(
   "/projets/:videoId1/compatibilite/:videoId2",
   authMiddleware,
   doubleUuidValidation,
-  miseEnCorrespondanceControllerInstance.evaluerCompatibilite
+  miseEnCorrespondanceControllerInstance.evaluerCompatibilite.bind(miseEnCorrespondanceControllerInstance)
 );
 
 /**
@@ -202,7 +202,7 @@ router.get(
 router.get(
   "/recherche/avancee",
   authMiddleware,
-  miseEnCorrespondanceControllerInstance.rechercheAvancee
+  miseEnCorrespondanceControllerInstance.rechercheAvancee.bind(miseEnCorrespondanceControllerInstance)
 );
 
 /**
@@ -213,7 +213,7 @@ router.get(
 router.get(
   "/statistiques/correspondance",
   authMiddleware,
-  miseEnCorrespondanceControllerInstance.obtenirStatistiquesCorrespondance
+  miseEnCorrespondanceControllerInstance.obtenirStatistiquesCorrespondance.bind(miseEnCorrespondanceControllerInstance)
 );
 
 module.exports = router;
