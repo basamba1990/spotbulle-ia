@@ -176,17 +176,20 @@ export const apiUtils = {
   validateVideoFile: (file) => {
     const allowedTypes = process.env.NEXT_PUBLIC_ALLOWED_VIDEO_TYPES?.split(',') || [
       'video/mp4',
+      'video/quicktime',
+      'video/x-quicktime',
       'video/avi',
-      'video/mov',
       'video/wmv',
-      'video/webm'
+      'video/webm',
+      'video/3gpp',
+      'video/3gpp2'
     ];
     
     // Mise à jour de la taille maximale à 250 Mo (250 * 1024 * 1024 octets)
     const maxSize = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 262144000; // 250MB
 
     if (!allowedTypes.includes(file.type)) {
-      throw new Error('Type de fichier non autorisé');
+      throw new Error(`Type de fichier non autorisé. Formats acceptés : ${allowedTypes.join(', ')}`);
     }
 
     if (file.size > maxSize) {
