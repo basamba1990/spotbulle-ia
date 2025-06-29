@@ -156,7 +156,7 @@ const getVideos = async (req, res) => {
       order: order,
       include: [
         { model: User, as: "user", attributes: ["id", "username", "email"] },
-        { model: Event, as: "event", attributes: ["id", "nom"] }
+        { model: Event, as: "evenement", attributes: ["id", "nom"] } // Correction ici: "event" devient "evenement"
       ]
     });
 
@@ -185,7 +185,7 @@ const getVideoById = async (req, res) => {
     const video = await Video.findByPk(id, {
       include: [
         { model: User, as: "user", attributes: ["id", "username", "email"] },
-        { model: Event, as: "event", attributes: ["id", "nom"] }
+        { model: Event, as: "evenement", attributes: ["id", "nom"] } // Correction ici: "event" devient "evenement"
       ]
     });
 
