@@ -1,7 +1,9 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import api from '../../lib/api'; // Import the api instance
 
 export default function RecommandationsProjets() {
   const [recommandations, setRecommandations] = useState([]);
@@ -32,10 +34,9 @@ export default function RecommandationsProjets() {
   }, []);
 
   const chargerRecommandations = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-
       const params = new URLSearchParams({
         limit: filtres.limit.toString(),
         score_minimum: filtres.score_minimum.toString()
@@ -47,14 +48,13 @@ export default function RecommandationsProjets() {
 
       const response = await api.get(`/ia/recommandations`, { params });
 
-      if (!response.ok) {
-        throw new Error('Erreur lors du chargement des recommandations');
-      }
-
-      const data = await response.json();
-      setRecommandations(data.data.recommandations || []);
+      // Axios gère automatiquement les erreurs HTTP (non-2xx) en rejetant la promesse
+      // Donc, pas besoin de vérifier response.ok ici si l'intercepteur gère déjà ça.
+      setRecommandations(response.data.data.recommandations || []);
     } catch (err) {
-      setError(err.message);
+      console.error('Erreur lors du chargement des recommandations:', err);
+      // Utiliser le message d'erreur de l'API si disponible, sinon un message générique
+      setError(err.response?.data?.message || err.message || 'Erreur inconnue lors du chargement des recommandations.');
     } finally {
       setLoading(false);
     }
@@ -331,4 +331,6 @@ export default function RecommandationsProjets() {
     </div>
   );
 }
+
+
 
