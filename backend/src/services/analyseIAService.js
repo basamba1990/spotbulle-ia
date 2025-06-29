@@ -18,20 +18,54 @@ class AnalyseIAService {
   }
 
   /**
+   * Télécharge un fichier depuis une URL et le sauvegarde localement.
+   * @param {string} fileUrl - URL du fichier à télécharger.
+   * @param {string} outputPath - Chemin où sauvegarder le fichier localement.
+   * @returns {Promise<string>} - Chemin du fichier téléchargé.
+   */
+  async downloadFile(fileUrl, outputPath) {
+    const writer = fs.createWriteStream(outputPath);
+    const response = await axios({
+      url: fileUrl,
+      method: 'GET',
+      responseType: 'stream'
+    });
+
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+      writer.on('finish', () => resolve(outputPath));
+      writer.on('error', reject);
+    });
+  }
+
+  /**
    * Extrait l'audio d'une vidéo et la transcrit en texte
-   * @param {string} videoPath - Chemin vers le fichier vidéo
+   * @param {string} videoPath - Chemin vers le fichier vidéo (peut être une URL ou un chemin local)
    * @returns {Promise<string>} - Transcription du contenu audio
    */
   async transcrireVideo(videoPath) {
+    let localVideoPath = videoPath;
+    let cleanupRequired = false;
+
     try {
-      // Vérifier que le fichier existe
-      if (!fs.existsSync(videoPath)) {
-        throw new Error(`Fichier vidéo non trouvé: ${videoPath}`);
+      // Si videoPath est une URL, télécharger le fichier localement
+      if (videoPath.startsWith('http://') || videoPath.startsWith('https://')) {
+        const fileName = path.basename(videoPath);
+        localVideoPath = path.join('/tmp', fileName); // Utiliser un répertoire temporaire
+        console.log(`Téléchargement de la vidéo depuis ${videoPath} vers ${localVideoPath}`);
+        await this.downloadFile(videoPath, localVideoPath);
+        cleanupRequired = true;
+      }
+
+      // Vérifier que le fichier existe localement
+      if (!fs.existsSync(localVideoPath)) {
+        throw new Error(`Fichier vidéo non trouvé: ${localVideoPath}`);
       }
 
       // Utiliser OpenAI Whisper API pour la transcription
       const formData = new FormData();
-      formData.append('file', fs.createReadStream(videoPath));
+      formData.append('file', fs.createReadStream(localVideoPath));
       formData.append('model', 'whisper-1');
       formData.append('language', 'fr'); // Français
       formData.append('response_format', 'text');
@@ -58,6 +92,14 @@ class AnalyseIAService {
       }
       
       throw new Error(`Échec de la transcription: ${error.message}`);
+    } finally {
+      // Nettoyer le fichier temporaire si nécessaire
+      if (cleanupRequired && fs.existsSync(localVideoPath)) {
+        fs.unlink(localVideoPath, (err) => {
+          if (err) console.error(`Erreur lors de la suppression du fichier temporaire ${localVideoPath}:`, err);
+          else console.log(`Fichier temporaire supprimé: ${localVideoPath}`);
+        });
+      }
     }
   }
 
@@ -349,4 +391,5 @@ class AnalyseIAService {
 }
 
 module.exports = AnalyseIAService;
+
 
