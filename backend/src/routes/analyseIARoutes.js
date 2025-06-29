@@ -1,70 +1,98 @@
-const express = require('express');
-const { param, query } = require('express-validator');
-const analyseIAController = require('../controllers/analyseIAController');
-const miseEnCorrespondanceController = require('../controllers/miseEnCorrespondanceController');
-const { authMiddleware } = require('../middleware/authMiddleware');
+const express = require("express");
+const { param, query } = require("express-validator");
+const AnalyseIAService = require("../services/analyseIAService");
+const MiseEnCorrespondanceService = require("../services/miseEnCorrespondanceService");
+const AnalyseIAController = require("../controllers/analyseIAController");
+const MiseEnCorrespondanceController = require("../controllers/miseEnCorrespondanceController");
+const { authMiddleware } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+// Instancier les services
+const analyseIAServiceInstance = new AnalyseIAService();
+const miseEnCorrespondanceServiceInstance = new MiseEnCorrespondanceService();
+
+// Instancier les contrôleurs avec les services injectés
+const analyseIAControllerInstance = AnalyseIAController(analyseIAServiceInstance);
+const miseEnCorrespondanceControllerInstance = MiseEnCorrespondanceController(miseEnCorrespondanceServiceInstance);
+
 // Validation pour les paramètres UUID
 const uuidValidation = [
-  param('videoId')
-    .isUUID()
-    .withMessage('ID de vidéo invalide')
+  param("videoId").isUUID().withMessage("ID de vidéo invalide"),
 ];
 
 // Validation pour deux UUIDs
 const doubleUuidValidation = [
-  param('videoId1')
-    .isUUID()
-    .withMessage('Premier ID de vidéo invalide'),
-  param('videoId2')
-    .isUUID()
-    .withMessage('Deuxième ID de vidéo invalide')
+  param("videoId1").isUUID().withMessage("Premier ID de vidéo invalide"),
+  param("videoId2").isUUID().withMessage("Deuxième ID de vidéo invalide"),
 ];
 
 // Validation pour la recherche de similarité
 const similariteValidation = [
   ...uuidValidation,
-  query('limit')
+  query("limit")
     .optional()
     .isInt({ min: 1, max: 20 })
-    .withMessage('La limite doit être entre 1 et 20'),
-  query('score_minimum')
+    .withMessage("La limite doit être entre 1 et 20"),
+  query("score_minimum")
     .optional()
     .isFloat({ min: 0, max: 1 })
-    .withMessage('Le score minimum doit être entre 0 et 1'),
-  query('thematique')
+    .withMessage("Le score minimum doit être entre 0 et 1"),
+  query("thematique")
     .optional()
-    .isIn(['sport', 'culture', 'education', 'famille', 'professionnel', 'loisirs', 'voyage', 'cuisine', 'technologie', 'sante', 'autre'])
-    .withMessage('Thématique invalide'),
-  query('inclure_utilisateur')
+    .isIn([
+      "sport",
+      "culture",
+      "education",
+      "famille",
+      "professionnel",
+      "loisirs",
+      "voyage",
+      "cuisine",
+      "technologie",
+      "sante",
+      "autre",
+    ])
+    .withMessage("Thématique invalide"),
+  query("inclure_utilisateur")
     .optional()
     .isBoolean()
-    .withMessage('inclure_utilisateur doit être un booléen')
+    .withMessage("inclure_utilisateur doit être un booléen"),
 ];
 
 // Validation pour les recommandations
 const recommendationValidation = [
-  query('limit')
+  query("limit")
     .optional()
     .isInt({ min: 1, max: 50 })
-    .withMessage('La limite doit être entre 1 et 50'),
-  query('score_minimum')
+    .withMessage("La limite doit être entre 1 et 50"),
+  query("score_minimum")
     .optional()
     .isFloat({ min: 0, max: 1 })
-    .withMessage('Le score minimum doit être entre 0 et 1'),
-  query('thematiques')
+    .withMessage("Le score minimum doit être entre 0 et 1"),
+  query("thematiques")
     .optional()
     .custom((value) => {
       if (value) {
-        const thematiques = value.split(',');
-        const themesValides = ['sport', 'culture', 'education', 'famille', 'professionnel', 'loisirs', 'voyage', 'cuisine', 'technologie', 'sante', 'autre'];
-        return thematiques.every(theme => themesValides.includes(theme.trim()));
+        const thematiques = value.split(",");
+        const themesValides = [
+          "sport",
+          "culture",
+          "education",
+          "famille",
+          "professionnel",
+          "loisirs",
+          "voyage",
+          "cuisine",
+          "technologie",
+          "sante",
+          "autre",
+        ];
+        return thematiques.every((theme) => themesValides.includes(theme.trim()));
       }
       return true;
     })
-    .withMessage('Thématiques invalides')
+    .withMessage("Thématiques invalides"),
 ];
 
 // ===== ROUTES D'ANALYSE IA =====
@@ -74,10 +102,11 @@ const recommendationValidation = [
  * @desc Lance l'analyse IA d'une vidéo
  * @access Privé (utilisateur authentifié)
  */
-router.post('/videos/:videoId/analyser', 
-  authMiddleware, 
-  uuidValidation, 
-  analyseIAController.lancerAnalyse
+router.post(
+  "/videos/:videoId/analyser",
+  authMiddleware,
+  uuidValidation,
+  analyseIAControllerInstance.lancerAnalyse
 );
 
 /**
@@ -85,10 +114,11 @@ router.post('/videos/:videoId/analyser',
  * @desc Récupère les résultats de l'analyse IA d'une vidéo
  * @access Privé (utilisateur authentifié)
  */
-router.get('/videos/:videoId/resultats', 
-  authMiddleware, 
-  uuidValidation, 
-  analyseIAController.obtenirResultatsAnalyse
+router.get(
+  "/videos/:videoId/resultats",
+  authMiddleware,
+  uuidValidation,
+  analyseIAControllerInstance.obtenirResultatsAnalyse
 );
 
 /**
@@ -96,10 +126,11 @@ router.get('/videos/:videoId/resultats',
  * @desc Recherche des vidéos similaires basée sur l'IA (ancienne route, maintenue pour compatibilité)
  * @access Privé (utilisateur authentifié)
  */
-router.get('/videos/:videoId/similaires', 
-  authMiddleware, 
-  similariteValidation, 
-  analyseIAController.rechercherVideosSimilaires
+router.get(
+  "/videos/:videoId/similaires",
+  authMiddleware,
+  similariteValidation,
+  analyseIAControllerInstance.rechercherVideosSimilaires
 );
 
 /**
@@ -107,9 +138,10 @@ router.get('/videos/:videoId/similaires',
  * @desc Obtient des statistiques sur l'analyse IA pour l'utilisateur
  * @access Privé (utilisateur authentifié)
  */
-router.get('/statistiques', 
-  authMiddleware, 
-  analyseIAController.obtenirStatistiquesIA
+router.get(
+  "/statistiques",
+  authMiddleware,
+  analyseIAControllerInstance.obtenirStatistiquesIA
 );
 
 // ===== ROUTES DE MISE EN CORRESPONDANCE =====
@@ -119,10 +151,11 @@ router.get('/statistiques',
  * @desc Recherche des projets similaires à une vidéo donnée
  * @access Privé (utilisateur authentifié)
  */
-router.get('/projets/:videoId/similaires', 
-  authMiddleware, 
-  similariteValidation, 
-  miseEnCorrespondanceController.rechercherProjetsSimilaires
+router.get(
+  "/projets/:videoId/similaires",
+  authMiddleware,
+  similariteValidation,
+  miseEnCorrespondanceControllerInstance.rechercherProjetsSimilaires
 );
 
 /**
@@ -130,10 +163,11 @@ router.get('/projets/:videoId/similaires',
  * @desc Génère des recommandations de projets pour l'utilisateur connecté
  * @access Privé (utilisateur authentifié)
  */
-router.get('/recommandations', 
-  authMiddleware, 
-  recommendationValidation, 
-  miseEnCorrespondanceController.recommanderProjets
+router.get(
+  "/recommandations",
+  authMiddleware,
+  recommendationValidation,
+  miseEnCorrespondanceControllerInstance.recommanderProjets
 );
 
 /**
@@ -141,10 +175,11 @@ router.get('/recommandations',
  * @desc Trouve des collaborateurs potentiels pour un projet
  * @access Privé (utilisateur authentifié)
  */
-router.get('/projets/:videoId/collaborateurs', 
-  authMiddleware, 
-  similariteValidation, 
-  miseEnCorrespondanceController.trouverCollaborateurs
+router.get(
+  "/projets/:videoId/collaborateurs",
+  authMiddleware,
+  similariteValidation,
+  miseEnCorrespondanceControllerInstance.trouverCollaborateurs
 );
 
 /**
@@ -152,10 +187,11 @@ router.get('/projets/:videoId/collaborateurs',
  * @desc Évalue la compatibilité entre deux projets
  * @access Privé (utilisateur authentifié)
  */
-router.get('/projets/:videoId1/compatibilite/:videoId2', 
-  authMiddleware, 
-  doubleUuidValidation, 
-  miseEnCorrespondanceController.evaluerCompatibilite
+router.get(
+  "/projets/:videoId1/compatibilite/:videoId2",
+  authMiddleware,
+  doubleUuidValidation,
+  miseEnCorrespondanceControllerInstance.evaluerCompatibilite
 );
 
 /**
@@ -163,9 +199,10 @@ router.get('/projets/:videoId1/compatibilite/:videoId2',
  * @desc Recherche avancée de projets avec filtres multiples
  * @access Privé (utilisateur authentifié)
  */
-router.get('/recherche/avancee', 
-  authMiddleware, 
-  miseEnCorrespondanceController.rechercheAvancee
+router.get(
+  "/recherche/avancee",
+  authMiddleware,
+  miseEnCorrespondanceControllerInstance.rechercheAvancee
 );
 
 /**
@@ -173,10 +210,12 @@ router.get('/recherche/avancee',
  * @desc Obtient des statistiques sur les correspondances et recommandations
  * @access Privé (utilisateur authentifié)
  */
-router.get('/statistiques/correspondance', 
-  authMiddleware, 
-  miseEnCorrespondanceController.obtenirStatistiquesCorrespondance
+router.get(
+  "/statistiques/correspondance",
+  authMiddleware,
+  miseEnCorrespondanceControllerInstance.obtenirStatistiquesCorrespondance
 );
 
 module.exports = router;
+
 
