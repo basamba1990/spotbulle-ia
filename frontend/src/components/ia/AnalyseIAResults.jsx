@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import api, { apiUtils } from '../../lib/api';
 
 export default function AnalyseIAResults({ videoId, onClose }) {
   const [resultats, setResultats] = useState(null);
@@ -14,17 +13,44 @@ export default function AnalyseIAResults({ videoId, onClose }) {
     }
   }, [videoId]);
 
+  const getAuthToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('token') || 
+             document.cookie.split('; ')
+               .find(row => row.startsWith('auth-token='))
+               ?.split('=')[1];
+    }
+    return null;
+  };
+
   const chargerResultats = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get(`/ia/videos/${videoId}/resultats`);
-      setResultats(response.data?.data?.video || response.data?.video || response.data);
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`https://spotbulle-ia.onrender.com/api/ia/videos/${videoId}/resultats`, {
+        headers
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Erreur ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setResultats(data.data?.video || data.video || data);
     } catch (err) {
       console.error('Erreur lors du chargement des résultats:', err);
-      const errorInfo = apiUtils.handleError(err);
-      setError(errorInfo.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -35,16 +61,32 @@ export default function AnalyseIAResults({ videoId, onClose }) {
       setLoading(true);
       setError(null);
 
-      await api.post(`/ia/videos/${videoId}/analyser`);
-      
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`https://spotbulle-ia.onrender.com/api/ia/videos/${videoId}/analyser`, {
+        method: 'POST',
+        headers
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Erreur ${response.status}: ${response.statusText}`);
+      }
+
       // Attendre un peu puis recharger les résultats
       setTimeout(() => {
         chargerResultats();
       }, 2000);
     } catch (err) {
       console.error('Erreur lors du lancement de l\'analyse:', err);
-      const errorInfo = apiUtils.handleError(err);
-      setError(errorInfo.message);
+      setError(err.message);
       setLoading(false);
     }
   };
@@ -123,7 +165,7 @@ export default function AnalyseIAResults({ videoId, onClose }) {
                 </span>
                 {resultats.date_analyse && (
                   <span className="text-sm text-gray-500">
-                    Analysé le {apiUtils.formatDate(resultats.date_analyse)}
+                    Analysé le {new Date(resultats.date_analyse).toLocaleDateString('fr-FR')}
                   </span>
                 )}
               </div>
