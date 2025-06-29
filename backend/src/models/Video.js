@@ -1,7 +1,9 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/db');
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../config/db");
+const Event = require("./Event"); // Importez le modèle Event
+const Participation = require("./Participation"); // Importez le modèle Participation
 
-const Video = sequelize.define('Video', {
+const Video = sequelize.define("Video", {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -11,8 +13,8 @@ const Video = sequelize.define('Video', {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'users',
-      key: 'id'
+      model: "users",
+      key: "id"
     }
   },
   titre: {
@@ -28,20 +30,20 @@ const Video = sequelize.define('Video', {
   },
   thematique: {
     type: DataTypes.ENUM(
-      'sport',
-      'culture',
-      'education',
-      'famille',
-      'professionnel',
-      'loisirs',
-      'voyage',
-      'cuisine',
-      'technologie',
-      'sante',
-      'autre'
+      "sport",
+      "culture",
+      "education",
+      "famille",
+      "professionnel",
+      "loisirs",
+      "voyage",
+      "cuisine",
+      "technologie",
+      "sante",
+      "autre"
     ),
     allowNull: false,
-    defaultValue: 'autre'
+    defaultValue: "autre"
   },
   url_video: {
     type: DataTypes.STRING,
@@ -60,20 +62,20 @@ const Video = sequelize.define('Video', {
   duree: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    comment: 'Durée en secondes'
+    comment: "Durée en secondes"
   },
   taille: {
     type: DataTypes.BIGINT,
     allowNull: true,
-    comment: 'Taille en octets'
+    comment: "Taille en octets"
   },
   date_upload: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
   },
   statut: {
-    type: DataTypes.ENUM('en_traitement', 'actif', 'inactif', 'supprime', 'modere'),
-    defaultValue: 'en_traitement'
+    type: DataTypes.ENUM("en_traitement", "actif", "inactif", "supprime", "modere"),
+    defaultValue: "en_traitement"
   },
   transcription: {
     type: DataTypes.TEXT,
@@ -106,7 +108,7 @@ const Video = sequelize.define('Video', {
   metadonnees: {
     type: DataTypes.JSONB,
     defaultValue: {},
-    comment: 'Métadonnées techniques et personnalisées'
+    comment: "Métadonnées techniques et personnalisées"
   },
   parametres_confidentialite: {
     type: DataTypes.JSONB,
@@ -121,86 +123,91 @@ const Video = sequelize.define('Video', {
     type: DataTypes.JSONB,
     allowNull: true,
     defaultValue: [],
-    comment: 'Mots-clés extraits par l\'agent IA avec leurs scores de pertinence'
+    comment: "Mots-clés extraits par l'agent IA avec leurs scores de pertinence"
   },
   embedding_vector: {
     type: DataTypes.TEXT,
     allowNull: true,
-    comment: 'Vecteur d\'embedding du contenu de la vidéo pour la recherche de similarité'
+    comment: "Vecteur d'embedding du contenu de la vidéo pour la recherche de similarité"
   },
   analyse_ia_status: {
-    type: DataTypes.ENUM('en_attente', 'en_cours', 'complete', 'echec'),
+    type: DataTypes.ENUM("en_attente", "en_cours", "complete", "echec"),
     allowNull: false,
-    defaultValue: 'en_attente',
-    comment: 'Statut de l\'analyse IA de la vidéo'
+    defaultValue: "en_attente",
+    comment: "Statut de l'analyse IA de la vidéo"
   },
   resume_ia: {
     type: DataTypes.TEXT,
     allowNull: true,
-    comment: 'Résumé automatique généré par l\'IA'
+    comment: "Résumé automatique généré par l'IA"
   },
   entites_nommees: {
     type: DataTypes.JSONB,
     allowNull: true,
     defaultValue: [],
-    comment: 'Entités nommées extraites par l\'IA (personnes, organisations, lieux, etc.)'
+    comment: "Entités nommées extraites par l'IA (personnes, organisations, lieux, etc.)"
   },
   score_qualite_pitch: {
     type: DataTypes.FLOAT,
     allowNull: true,
-    comment: 'Score de qualité du pitch évalué par l\'IA (0-1)'
+    comment: "Score de qualité du pitch évalué par l'IA (0-1)"
   },
   date_analyse_ia: {
     type: DataTypes.DATE,
     allowNull: true,
-    comment: 'Date de la dernière analyse IA'
+    comment: "Date de la dernière analyse IA"
   },
   // Colonnes pour les événements et participations
   evenement_id: {
     type: DataTypes.UUID,
     allowNull: true,
     references: {
-      model: 'events',
-      key: 'id'
+      model: "events",
+      key: "id"
     },
-    comment: 'ID de l\'événement associé à cette vidéo'
+    comment: "ID de l'événement associé à cette vidéo"
   },
   participation_id: {
     type: DataTypes.UUID,
     allowNull: true,
     references: {
-      model: 'participations',
-      key: 'id'
+      model: "participations",
+      key: "id"
     },
-    comment: 'ID de la participation associée à cette vidéo'
+    comment: "ID de la participation associée à cette vidéo"
   }
 }, {
-  tableName: 'videos',
+  tableName: "videos",
   timestamps: true,
-  createdAt: 'date_upload',
-  updatedAt: 'date_modification',
+  createdAt: "date_upload",
+  updatedAt: "date_modification",
   indexes: [
     {
-      fields: ['user_id']
+      fields: ["user_id"]
     },
     {
-      fields: ['thematique']
+      fields: ["thematique"]
     },
     {
-      fields: ['statut']
+      fields: ["statut"]
     },
     {
-      fields: ['date_upload']
+      fields: ["date_upload"]
     },
     {
-      fields: ['tags'],
-      using: 'gin'
+      fields: ["tags"],
+      using: "gin"
     },
     {
-      fields: ['analyse_ia_status']
+      fields: ["analyse_ia_status"]
     }
   ]
 });
 
+// Définition des associations après la définition des modèles
+Video.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement' });
+Video.belongsTo(Participation, { foreignKey: 'participation_id', as: 'participation' });
+
 module.exports = Video;
+
 
