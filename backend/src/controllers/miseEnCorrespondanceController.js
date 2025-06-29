@@ -2,8 +2,8 @@ const MiseEnCorrespondanceService = require('../services/miseEnCorrespondanceSer
 const { validationResult } = require('express-validator');
 
 class MiseEnCorrespondanceController {
-  constructor() {
-    this.correspondanceService = new MiseEnCorrespondanceService();
+  constructor(correspondanceService) {
+    this.correspondanceService = correspondanceService;
   }
 
   /**
@@ -315,5 +315,4 @@ class MiseEnCorrespondanceController {
   }
 }
 
-module.exports = new MiseEnCorrespondanceController();
-
+module.exports = (correspondanceService) => new MiseEnCorrespondanceController(correspondanceService);

@@ -3,8 +3,8 @@ const AnalyseIAService = require("../services/analyseIAService");
 const { validationResult } = require("express-validator");
 
 class AnalyseIAController {
-  constructor() {
-    this.analyseService = new AnalyseIAService();
+  constructor(analyseService) {
+    this.analyseService = analyseService;
     // Lier la méthode analyserVideoAsync à l'instance pour conserver le contexte 'this'
     this.analyserVideoAsync = this.analyserVideoAsync.bind(this);
   }
@@ -345,6 +345,6 @@ class AnalyseIAController {
   }
 }
 
-module.exports = new AnalyseIAController();
+module.exports = (analyseIAService) => new AnalyseIAController(analyseIAService);
 
 
