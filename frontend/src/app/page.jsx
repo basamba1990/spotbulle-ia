@@ -35,8 +35,8 @@ export default function HomePage() {
         statut: 'planifie'
       });
 
-      setFeaturedVideos(videosResponse.data.videos);
-      setUpcomingEvents(eventsResponse.data.events);
+      setFeaturedVideos(videosResponse.data?.videos || []);
+      setUpcomingEvents(eventsResponse.data?.events || []);
     } catch (error) {
       const errorData = apiUtils.handleError(error);
       setError(errorData.message);
