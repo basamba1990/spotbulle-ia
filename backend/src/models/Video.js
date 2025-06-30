@@ -2,6 +2,7 @@ const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 const Event = require("./Event"); // Importez le modèle Event
 const Participation = require("./Participation"); // Importez le modèle Participation
+const User = require("./User"); // Importez le modèle User
 
 const Video = sequelize.define("Video", {
   id: {
@@ -118,39 +119,39 @@ const Video = sequelize.define("Video", {
       telechargement_autorise: false
     }
   },
-  // Nouveaux champs pour l'IA
+  // Nouveaux champs pour l\'IA
   mots_cles_ia: {
     type: DataTypes.JSONB,
     allowNull: true,
     defaultValue: [],
-    comment: "Mots-clés extraits par l'agent IA avec leurs scores de pertinence"
+    comment: "Mots-clés extraits par l\'agent IA avec leurs scores de pertinence"
   },
   embedding_vector: {
     type: DataTypes.TEXT,
     allowNull: true,
-    comment: "Vecteur d'embedding du contenu de la vidéo pour la recherche de similarité"
+    comment: "Vecteur d\'embedding du contenu de la vidéo pour la recherche de similarité"
   },
   analyse_ia_status: {
     type: DataTypes.ENUM("en_attente", "en_cours", "complete", "echec"),
     allowNull: false,
     defaultValue: "en_attente",
-    comment: "Statut de l'analyse IA de la vidéo"
+    comment: "Statut de l\'analyse IA de la vidéo"
   },
   resume_ia: {
     type: DataTypes.TEXT,
     allowNull: true,
-    comment: "Résumé automatique généré par l'IA"
+    comment: "Résumé automatique généré par l\'IA"
   },
   entites_nommees: {
     type: DataTypes.JSONB,
     allowNull: true,
     defaultValue: [],
-    comment: "Entités nommées extraites par l'IA (personnes, organisations, lieux, etc.)"
+    comment: "Entités nommées extraites par l\'IA (personnes, organisations, lieux, etc.)"
   },
   score_qualite_pitch: {
     type: DataTypes.FLOAT,
     allowNull: true,
-    comment: "Score de qualité du pitch évalué par l'IA (0-1)"
+    comment: "Score de qualité du pitch évalué par l\'IA (0-1)"
   },
   date_analyse_ia: {
     type: DataTypes.DATE,
@@ -165,7 +166,7 @@ const Video = sequelize.define("Video", {
       model: "events",
       key: "id"
     },
-    comment: "ID de l'événement associé à cette vidéo"
+    comment: "ID de l\'événement associé à cette vidéo"
   },
   participation_id: {
     type: DataTypes.UUID,
@@ -207,6 +208,7 @@ const Video = sequelize.define("Video", {
 // Définition des associations après la définition des modèles
 Video.belongsTo(Event, { foreignKey: 'evenement_id', as: 'evenement' });
 Video.belongsTo(Participation, { foreignKey: 'participation_id', as: 'participation' });
+Video.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 module.exports = Video;
 
