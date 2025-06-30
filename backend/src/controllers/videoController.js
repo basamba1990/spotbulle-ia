@@ -60,8 +60,7 @@ const uploadVideo = async (req, res) => {
     const filePath = `videos/${fileName}`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("videos")
-      .upload(filePath, req.file.buffer, {
+.from(process.env.BUCKET_NAME)
         contentType: req.file.mimetype,
       });
 
@@ -75,8 +74,7 @@ const uploadVideo = async (req, res) => {
     }
 
     // Obtenir l'URL publique du fichier
-    const { data: publicUrlData } = supabase.storage
-      .from("videos")
+.from(process.env.BUCKET_NAME)
       .getPublicUrl(filePath);
 
     const publicUrl = publicUrlData.publicUrl;
@@ -144,7 +142,7 @@ const getVideos = async (req, res) => {
 
     let order = [["createdAt", "DESC"]];
     if (sort === "popular") {
-      order = [["likesCount", "DESC"]];
+      order = [["likes", "DESC"]];
     } else if (sort === "oldest") {
       order = [["createdAt", "ASC"]];
     }
