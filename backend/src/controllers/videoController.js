@@ -19,7 +19,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: 250 * 1024 * 1024 // 250MB
+    fileSize: 100 * 1024 * 1024 // 100MB
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = ["video/mp4", "video/quicktime", "video/x-quicktime", "video/avi", "video/wmv", "video/webm", "video/3gpp", "video/3gpp2"];
@@ -60,8 +60,9 @@ const uploadVideo = async (req, res) => {
     const filePath = `videos/${fileName}`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
-.from(process.env.BUCKET_NAME)
-        contentType: req.file.mimetype,
+      .from(process.env.BUCKET_NAME)
+      .upload(filePath, req.file.buffer, {
+        contentType: req.file.mimetype
       });
 
     if (uploadError) {
