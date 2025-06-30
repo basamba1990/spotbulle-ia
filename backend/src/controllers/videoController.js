@@ -88,8 +88,8 @@ const uploadVideo = async (req, res) => {
       thematique,
       tags: tags ? JSON.parse(tags) : [],
       chemin_fichier: filePath,
-      url_acces: publicUrl,
-      userId,
+      url_video: publicUrl,
+      user_id: userId,
       evenementId: evenement_id || null,
       parametres_confidentialite: parametres_confidentialite ? JSON.parse(parametres_confidentialite) : { public: true, commentaires_autorises: true, telechargement_autorise: false }
     });
