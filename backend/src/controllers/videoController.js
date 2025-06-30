@@ -75,7 +75,8 @@ const uploadVideo = async (req, res) => {
     }
 
     // Obtenir l'URL publique du fichier
-.from(process.env.BUCKET_NAME)
+    const { data: publicUrlData, error: publicUrlError } = await supabase.storage
+      .from(process.env.BUCKET_NAME)
       .getPublicUrl(filePath);
 
     const publicUrl = publicUrlData.publicUrl;
