@@ -135,10 +135,12 @@ router.get('/:id', optionalAuth, eventController.getEventById);
 router.get('/:id/videos', optionalAuth, eventController.getEventVideos);
 
 // Routes protégées
-router.post(\'/\', authMiddleware, eventValidation, eventController.createEvent);
-router.put(\'/:id\', authMiddleware, eventValidation, eventController.updateEvent);
-router.delete(\'/:id\', authMiddleware, eventController.deleteEvent);
-router.post(\'/:id/join\', authMiddleware, participationValidation, eventController.joinEvent);
+router.post('/', authMiddleware, eventValidation, eventController.createEvent);
+router.put("/:id", authMiddleware, eventValidation, eventController.updateEvent);
+router.delete("/:id", authMiddleware, eventController.deleteEvent);
+
+router.post("/:id/join", authMiddleware, participationValidation, eventController.joinEvent);
 
 module.exports = router;
+
 
