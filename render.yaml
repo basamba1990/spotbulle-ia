@@ -5,24 +5,57 @@ services:
     env: node
     plan: starter
     buildCommand: |
+      # Nettoyer les caches précédents
+      rm -rf node_modules package-lock.json
+      rm -rf backend/node_modules backend/package-lock.json
+      rm -rf frontend/node_modules frontend/package-lock.json frontend/.next
+      
       # Installer les dépendances du backend
-      cd backend && npm install && \
-      # Installer les dépendances du frontend, y compris les devDependencies
-      cd ../frontend && npm install --production=false && npm run build && \
+      echo "📦 Installation des dépendances backend..."
+      cd backend && npm install --production=false
+      
+      # Installer les dépendances du frontend
+      echo "📦 Installation des dépendances frontend..."
+      cd ../frontend && npm install --production=false
+      
+      # Vérifier les variables d'environnement nécessaires
+      echo "🔧 Configuration des variables d'environnement..."
+      export NEXT_PUBLIC_API_URL="https://spotbulle-ia.onrender.com"
+      export NODE_ENV="production"
+      
+      # Build du frontend Next.js avec gestion d'erreurs
+      echo "🏗️ Build du frontend Next.js..."
+      npm run build || (echo "❌ Erreur lors du build Next.js" && exit 1)
+      
+      # Vérifier que le build a réussi
+      if [ ! -d ".next" ]; then
+        echo "❌ Le répertoire .next n'existe pas après le build"
+        exit 1
+      fi
+      
+      # Copier les fichiers statiques vers le répertoire public
+      echo "📁 Copie des fichiers statiques..."
+      mkdir -p ../public/static
+      cp -r .next/static/* ../public/static/ 2>/dev/null || echo "⚠️ Aucun fichier statique à copier"
+      
       # Retourner au répertoire racine
       cd ..
-    startCommand: node backend/src/server-with-frontend.js
+      
+      echo "✅ Build terminé avec succès"
+    startCommand: |
+      echo "🚀 Démarrage du serveur SpotBulle IA..."
+      export NODE_ENV=production
+      export PORT=10000
+      node backend/src/server-with-frontend.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       - key: DATABASE_URL
-        sync: false # Ou true si vous utilisez un groupe de secrets
+        sync: false
       - key: JWT_SECRET
-        value: |-
-          #!/usr/bin/env bash
-          node backend/generate_jwt_secret.js
+        generateValue: true
       - key: JWT_EXPIRES_IN
         value: "7d"
       - key: SUPABASE_URL
@@ -35,9 +68,16 @@ services:
         value: "pitch-videos"
       - key: FRONTEND_URL
         value: "https://spotbulle-ia.onrender.com"
+      - key: NEXT_PUBLIC_API_URL
+        value: "https://spotbulle-ia.onrender.com"
       - key: OPENAI_API_KEY
         sync: false
+    # Augmenter les ressources pour le build
+    disk: 1024
+    # Ajouter des health checks
+    healthCheckPath: /health
 
 databases:
   - name: spotbulle-ia-db
     plan: basic-256mb
+
