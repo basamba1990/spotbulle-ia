@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: spotbulle-ia
+    name: spotbulle-ia-v2
     env: node
     plan: starter
-    buildCommand: "echo 'CACHE_BUST_2025_07_01' && ./build.sh"
-    startCommand: "export NODE_ENV=production && export PORT=10000 && export NODE_OPTIONS='--max-old-space-size=2048' && echo '🚀 Démarrage SpotBulle IA...' && cd backend && node src/server-with-frontend.js"
+    buildCommand: "./build.sh"
+    startCommand: "cd backend && NODE_ENV=production PORT=10000 node src/server-with-frontend.js"
     envVars:
       - key: NODE_ENV
         value: production
@@ -25,26 +25,16 @@ services:
       - key: BUCKET_NAME
         value: "pitch-videos"
       - key: FRONTEND_URL
-        value: "https://spotbulle-ia.onrender.com"
+        value: "https://spotbulle-ia-v2.onrender.com"
       - key: NEXT_PUBLIC_API_URL
-        value: "https://spotbulle-ia.onrender.com"
+        value: "https://spotbulle-ia-v2.onrender.com"
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
       - key: OPENAI_API_KEY
         sync: false
     healthCheckPath: /health
-    buildFilter:
-      paths:
-        - backend/**
-        - frontend/**
-        - build.sh
-        - render.yaml
-      ignoredPaths:
-        - "**/*.md"
-        - "**/node_modules/**"
-        - "**/.git/**"
 
 databases:
-  - name: spotbulle-ia-db
+  - name: spotbulle-ia-db-v2
     plan: basic-256mb
 
