@@ -5,7 +5,7 @@ const { authMiddleware, optionalAuth } = require("../middleware/authMiddleware")
 
 const router = express.Router();
 
-// Validation pour la création/mise à jour d'événement
+// Validation pour la création/mise à jour d\"événement
 const eventValidation = [
   body("nom")
     .trim()
@@ -46,7 +46,7 @@ const eventValidation = [
   body("image_url")
     .optional()
     .isURL()
-    .withMessage("URL d'image invalide"),
+    .withMessage("URL d\"image invalide"),
   body("capacite_max")
     .optional()
     .isInt({ min: 1 })
