@@ -23,7 +23,7 @@ export CI=true
 # Installer les dépendances du backend
 echo "📦 Installation des dépendances backend..."
 cd backend
-npm ci --only=production --no-audit --no-fund
+npm install --no-audit --no-fund # Utiliser npm install pour générer un nouveau package-lock.json
 
 # Installer les dépendances du frontend avec les corrections
 echo "📦 Installation des dépendances frontend..."
@@ -31,7 +31,7 @@ cd ../frontend
 
 # Ajouter les dépendances manquantes avant l'installation
 npm install --save critters@0.0.24 sharp@0.33.2
-npm ci --no-audit --no-fund
+npm install --no-audit --no-fund # Utiliser npm install pour générer un nouveau package-lock.json
 
 # Vérifier que les dépendances critiques sont installées
 echo "🔍 Vérification des dépendances critiques..."
