@@ -117,8 +117,8 @@ app.use(limiter);
 app.set('trust proxy', 1);
 
 // Middlewares pour le parsing avec limite de taille
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '250mb' }));
+app.use(express.urlencoded({ extended: true, limit: '250mb' }));
 
 // Route de santé améliorée
 app.get('/health', async (req, res) => {
@@ -550,7 +550,7 @@ app.use((err, req, res, next) => {
   if (err.type === 'entity.too.large') {
     return res.status(413).json({
       success: false,
-      message: 'Fichier trop volumineux. Taille maximale: 50MB'
+      message: 'Fichier trop volumineux. Taille maximale: 250MB'
     });
   }
   
@@ -643,7 +643,7 @@ const startServer = async () => {
       console.log(`🤖 API IA: http://localhost:${PORT}/api/ia`);
       console.log(`🎨 Frontend: ${frontendBuilt ? 'Intégré' : 'Mode fallback'}`);
       console.log(`💾 Base de données: ${dbConnected ? 'Connectée' : 'Mode dégradé'}`);
-      console.log(`📦 Taille max uploads: 50MB`);
+      console.log(`📦 Taille max uploads: 250MB`);
       console.log('================================');
       console.log('');
     });
