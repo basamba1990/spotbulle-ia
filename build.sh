@@ -2,76 +2,65 @@
 
 set -e # Exit immediately if a command exits with a non-zero status.
 
-# Afficher les informations de l'environnement
+# SOLUTION IMMEDIATE - Script de build modifié pour éviter les problèmes de cache Render
+echo "🚀 SOLUTION IMMEDIATE - Build SpotBulle IA v2.0"
 echo "🔧 Node version: $(node --version)"
 echo "🔧 NPM version: $(npm --version)"
 echo "🔧 Environment: ${NODE_ENV:-development}"
 
-# Configurer les variables d'environnement pour le build
+# Configurer les variables d'environnement
 export NODE_ENV=production
 export NEXT_PUBLIC_API_URL="https://spotbulle-ia.onrender.com"
 export NEXT_TELEMETRY_DISABLED=1
 export CI=true
 export NODE_OPTIONS="--max-old-space-size=4096"
 
-# Nettoyer les caches npm
-echo "🧹 Nettoyage des caches npm..."
+# Nettoyer complètement
+echo "🧹 Nettoyage complet..."
+rm -rf node_modules package-lock.json
+rm -rf backend/node_modules backend/package-lock.json  
+rm -rf frontend/node_modules frontend/package-lock.json frontend/.next
 npm cache clean --force
 
-# Installer les dépendances du backend
-echo "📦 Installation des dépendances backend..."
+# Backend
+echo "📦 Installation backend..."
 cd backend
-npm ci --only=production --no-audit --no-fund
-echo "✅ Dépendances backend installées"
+npm install --only=production --no-audit --no-fund
+echo "✅ Backend prêt"
 
-# Installer les dépendances du frontend
-echo "📦 Installation des dépendances frontend..."
+# Frontend  
+echo "📦 Installation frontend..."
 cd ../frontend
-npm ci --no-audit --no-fund
-echo "✅ Dépendances frontend installées"
+npm install --no-audit --no-fund
+echo "✅ Frontend prêt"
 
-# Vérifier que les dépendances critiques sont installées
-echo "🔍 Vérification des dépendances critiques..."
-node -e "console.log('✅ next:', require('next/package.json').version)"
-node -e "console.log('✅ tailwindcss:', require('tailwindcss/package.json').version)"
-node -e "console.log('✅ sharp:', require('sharp/package.json').version)"
+# Vérification simple
+echo "🔍 Vérification..."
+if [ ! -d "node_modules/tailwindcss" ]; then
+  echo "❌ tailwindcss manquant"
+  exit 1
+fi
+echo "✅ tailwindcss trouvé"
 
-# Build du frontend Next.js
-echo "🏗️ Build du frontend Next.js..."
+# Build
+echo "🏗️ Build Next.js..."
 npm run build
 
-# Vérifier que le build a réussi
-if [ ! -d ".next" ]; then
-  echo "❌ Le répertoire .next n'existe pas après le build"
+# Vérification du build
+if [ ! -d ".next" ] || [ ! -f ".next/BUILD_ID" ]; then
+  echo "❌ Build échoué"
   exit 1
 fi
 
-if [ ! -f ".next/BUILD_ID" ]; then
-  echo "❌ BUILD_ID manquant, le build Next.js a échoué"
-  exit 1
-fi
+echo "✅ Build réussi - BUILD_ID: $(cat .next/BUILD_ID)"
 
-echo "✅ Build Next.js réussi, BUILD_ID: $(cat .next/BUILD_ID)"
-
-# Copier les fichiers statiques vers le répertoire public
-echo "📁 Copie des fichiers statiques..."
-mkdir -p ../public/static
-if [ -d ".next/static" ]; then
-  cp -r .next/static/* ../public/static/ 2>/dev/null || echo "⚠️ Aucun fichier statique à copier"
-  echo "✅ Fichiers statiques copiés"
-else
-  echo "⚠️ Répertoire .next/static non trouvé"
-fi
-
-# Retourner au répertoire racine
+# Copie des fichiers statiques
+echo "📁 Copie des assets..."
 cd ..
+mkdir -p public/static
+if [ -d "frontend/.next/static" ]; then
+  cp -r frontend/.next/static/* public/static/ 2>/dev/null || true
+fi
 
-# Afficher un résumé du build
-echo "📊 Résumé du build:"
-echo "  - Backend: $(ls -1 backend/node_modules 2>/dev/null | wc -l) modules"
-echo "  - Frontend: $(ls -1 frontend/node_modules 2>/dev/null | wc -l) modules"
-echo "  - Build Next.js: $(du -sh frontend/.next 2>/dev/null || echo 'N/A')"
-echo "  - Fichiers statiques: $(ls -1 public/static 2>/dev/null | wc -l || echo '0') fichiers"
-
-echo "✅ Build terminé avec succès"
+echo "🎉 SOLUTION IMMEDIATE - Build terminé avec succès !"
 

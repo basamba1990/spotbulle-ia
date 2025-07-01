@@ -1,27 +1,21 @@
 services:
-  # Service principal avec frontend et backend intégrés
   - type: web
     name: spotbulle-ia
     env: node
     plan: starter
-    buildCommand: "./build.sh"
+    # SOLUTION IMMEDIATE - Forcer un nouveau build en modifiant la commande
+    buildCommand: "echo 'CACHE_BUST_2025_07_01' && ./build.sh"
     startCommand: |
-      echo "🚀 Démarrage du serveur SpotBulle IA..."
+      echo "🚀 Démarrage SpotBulle IA..."
       export NODE_ENV=production
       export PORT=10000
       export NODE_OPTIONS="--max-old-space-size=2048"
       
-      # Vérifier que les fichiers nécessaires existent
       if [ ! -f "backend/src/server-with-frontend.js" ]; then
-        echo "❌ Fichier serveur manquant"
+        echo "❌ Serveur manquant"
         exit 1
       fi
       
-      if [ ! -d "frontend/.next" ]; then
-        echo "⚠️ Build Next.js manquant, démarrage en mode dégradé"
-      fi
-      
-      # Démarrer le serveur
       cd backend && node src/server-with-frontend.js
       
     envVars:
@@ -52,10 +46,8 @@ services:
       - key: OPENAI_API_KEY
         sync: false
         
-    # Configuration des health checks
     healthCheckPath: /health
     
-    # Configuration des variables de build
     buildFilter:
       paths:
         - backend/**
@@ -66,8 +58,6 @@ services:
         - "**/*.md"
         - "**/node_modules/**"
         - "**/.git/**"
-        - "**/coverage/**"
-        - "**/.next/**"
 
 databases:
   - name: spotbulle-ia-db
