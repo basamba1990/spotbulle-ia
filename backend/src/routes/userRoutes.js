@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query } = require('express-validator');
 const userController = require('../controllers/userController');
-const { authMiddleware, optionalAuth } = require('../middleware/authMiddleware');
+const { authenticateToken, optionalAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -83,7 +83,14 @@ router.get('/:id/videos', optionalAuth, paginationValidation, userController.get
 router.get('/:id/stats', optionalAuth, userController.getUserStats);
 
 // Routes protégées
-router.put("/profile", authMiddleware, ...updateProfileValidation, userController.updateProfile);
+router.put("/profile", authenticateToken, ...updateProfileValidation, userController.updateProfile);
 
 module.exports = router;
+
+
+
+console.log('Debug: authenticateToken type:', typeof authenticateToken);
+console.log('Debug: updateProfileValidation type:', typeof updateProfileValidation, Array.isArray(updateProfileValidation));
+console.log('Debug: userController.updateProfile type:', typeof userController.updateProfile);
+
 
