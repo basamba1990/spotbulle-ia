@@ -51,5 +51,7 @@ router.get('/me', authMiddleware, authController.me);
 router.post('/logout', authMiddleware, authController.logout);
 router.post('/refresh-token', authMiddleware, authController.refreshToken);
 
+// Suppression de toute route GET sans callback qui pourrait causer l'erreur
+
 module.exports = router;
 
