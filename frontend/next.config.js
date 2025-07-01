@@ -23,6 +23,11 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
+    // Optimisations d'images
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   
   // Variables d'environnement
@@ -34,6 +39,9 @@ const nextConfig = {
   
   // Configuration pour le déploiement sur Render
   output: 'standalone',
+  
+  // Désactiver le prerendering pour éviter les erreurs
+  trailingSlash: false,
   
   // Configuration des redirections et rewrites
   async rewrites() {
@@ -51,7 +59,7 @@ const nextConfig = {
     ];
   },
   
-  // Configuration Webpack
+  // Configuration Webpack optimisée
   webpack: (config, { isServer, dev }) => {
     // Optimisations pour la production
     if (!dev && !isServer) {
@@ -69,19 +77,35 @@ const nextConfig = {
         assert: false,
         os: false,
         path: false,
+        buffer: false,
+        util: false,
       };
     }
     
-    // Optimisation des chunks
+    // Optimisation des chunks pour réduire la taille du bundle
     if (!dev) {
       config.optimization = {
         ...config.optimization,
         splitChunks: {
           chunks: 'all',
+          minSize: 20000,
+          maxSize: 244000,
           cacheGroups: {
+            default: {
+              minChunks: 2,
+              priority: -20,
+              reuseExistingChunk: true,
+            },
             vendor: {
               test: /[\\/]node_modules[\\/]/,
               name: 'vendors',
+              priority: -10,
+              chunks: 'all',
+            },
+            react: {
+              test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+              name: 'react',
+              priority: 20,
               chunks: 'all',
             },
           },
@@ -110,6 +134,10 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
           },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
         ],
       },
       {
@@ -126,6 +154,16 @@ const nextConfig = {
           {
             key: 'Access-Control-Allow-Headers',
             value: 'Content-Type, Authorization',
+          },
+        ],
+      },
+      {
+        // Cache statique pour les assets
+        source: '/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
@@ -152,18 +190,29 @@ const nextConfig = {
   // Configuration de la compression
   compress: true,
   
-  // Configuration des pages d'erreur personnalisées
+  // Désactiver le header X-Powered-By
   poweredByHeader: false,
   
   // Configuration pour les builds plus rapides
   swcMinify: true,
   
-  // Configuration expérimentale
+  // Configuration expérimentale pour optimiser les performances
   experimental: {
-    // Optimisations pour les builds
+    // Optimisations CSS
     optimizeCss: true,
-    // Amélioration des performances
+    // Amélioration des performances de navigation
     scrollRestoration: true,
+    // Optimisation des imports
+    optimizePackageImports: ['axios', 'date-fns', 'clsx'],
+    // Turbo mode pour les builds plus rapides
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   
   // Configuration TypeScript (si utilisé)
@@ -174,6 +223,32 @@ const nextConfig = {
   // Configuration ESLint
   eslint: {
     ignoreDuringBuilds: false,
+    dirs: ['src'],
+  },
+  
+  // Configuration pour éviter les erreurs de prerendering
+  generateBuildId: async () => {
+    // Utiliser un build ID basé sur le timestamp pour éviter les conflits
+    return `build-${Date.now()}`;
+  },
+  
+  // Configuration des pages à exclure du prerendering si nécessaire
+  async generateStaticParams() {
+    return [];
+  },
+  
+  // Configuration pour gérer les erreurs de build
+  onDemandEntries: {
+    // Période en ms pour garder les pages en mémoire
+    maxInactiveAge: 25 * 1000,
+    // Nombre de pages à garder simultanément
+    pagesBufferLength: 2,
+  },
+  
+  // Configuration pour optimiser les performances
+  compiler: {
+    // Supprimer les console.log en production
+    removeConsole: process.env.NODE_ENV === 'production',
   },
 };
 
