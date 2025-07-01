@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const authController = require('../controllers/authController');
-const { authMiddleware } = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -47,9 +47,9 @@ router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
 
 // Routes protégées
-router.get('/me', authMiddleware, authController.me);
-router.post('/logout', authMiddleware, authController.logout);
-router.post('/refresh-token', authMiddleware, authController.refreshToken);
+router.get("/me", authenticateToken, authController.me);
+router.post("/logout", authenticateToken, authController.logout);
+router.post("/refresh-token", authenticateToken, authController.refreshToken);
 
 // Suppression de toute route GET sans callback qui pourrait causer l'erreur
 
