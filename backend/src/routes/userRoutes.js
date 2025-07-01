@@ -83,7 +83,7 @@ router.get('/:id/videos', optionalAuth, paginationValidation, userController.get
 router.get('/:id/stats', optionalAuth, userController.getUserStats);
 
 // Routes protégées
-router.put('/profile', authMiddleware, updateProfileValidation, userController.updateProfile);
+router.put("/profile", authMiddleware, ...updateProfileValidation, userController.updateProfile);
 
 module.exports = router;
 
