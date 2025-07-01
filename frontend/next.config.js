@@ -1,36 +1,36 @@
-/** @type {import(\'next\').NextConfig} */
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   // Configuration des images
   images: {
     domains: [
-      \"your-project.supabase.co\",
-      \"supabase.co\",
-      \"avatars.githubusercontent.com\",
-      \"lh3.googleusercontent.com\",
-      \"spotbulle-ia.onrender.com\"
+      "your-project.supabase.co",
+      "supabase.co",
+      "avatars.githubusercontent.com",
+      "lh3.googleusercontent.com",
+      "spotbulle-ia.onrender.com"
     ],
     remotePatterns: [
       {
-        protocol: \"https\",
-        hostname: \"**.supabase.co\",
-        port: \"\",
-        pathname: \"/storage/v1/object/public/**\",
+        protocol: "https",
+        hostname: "**.supabase.co",
+        port: "",
+        pathname: "/storage/v1/object/public/**",
       },
       {
-        protocol: \"https\",
-        hostname: \"spotbulle-ia.onrender.com\",
-        port: \"\",
-        pathname: \"/**\",
+        protocol: "https",
+        hostname: "spotbulle-ia.onrender.com",
+        port: "",
+        pathname: "/**",
       },
     ],
-    // Optimisations d\"images
-    formats: [\"image/webp\", \"image/avif\"],
+    // Optimisations d'images
+    formats: ["image/webp", "image/avif"],
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
-    contentSecurityPolicy: \"default-src \\\"self\\\"; script-src \\\"none\\\"; sandbox;\",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   
-  // Variables d\"environnement
+  // Variables d'environnement
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -38,7 +38,7 @@ const nextConfig = {
   },
   
   // Configuration pour le déploiement sur Render
-  output: \"standalone\",
+  output: "standalone",
   
   // Désactiver le prerendering pour éviter les erreurs
   trailingSlash: false,
@@ -46,15 +46,15 @@ const nextConfig = {
   // Configuration des redirections et rewrites
   async rewrites() {
     // En production sur Render, pas besoin de rewrites car tout est sur le même serveur
-    if (process.env.NODE_ENV === \"production\" && process.env.RENDER) {
+    if (process.env.NODE_ENV === "production" && process.env.RENDER) {
       return [];
     }
     
     // En développement, rediriger vers le backend local
     return [
       {
-        source: \"/api/:path*\",
-        destination: `${process.env.NEXT_PUBLIC_API_URL || \"http://localhost:10000\"}/:path*`,
+        source: "/api/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:10000"}/:path*`,
       }
     ];
   },
@@ -87,7 +87,7 @@ const nextConfig = {
       config.optimization = {
         ...config.optimization,
         splitChunks: {
-          chunks: \"all\",
+          chunks: "all",
           minSize: 20000,
           maxSize: 244000,
           cacheGroups: {
@@ -97,16 +97,16 @@ const nextConfig = {
               reuseExistingChunk: true,
             },
             vendor: {
-              test: /[\\\\/]node_modules[\\\\/]/,
-              name: \"vendors\",
+              test: /[\\/]node_modules[\\/]/,
+              name: "vendors",
               priority: -10,
-              chunks: \"all\",
+              chunks: "all",
             },
             react: {
-              test: /[\\\\/]node_modules[\\\\/](react|react-dom)[\\\\/]/,
-              name: \"react\",
+              test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+              name: "react",
               priority: 20,
-              chunks: \"all\",
+              chunks: "all",
             },
           },
         },
@@ -120,50 +120,50 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: \"/(.*)\",
+        source: "/(.*)",
         headers: [
           {
-            key: \"X-Frame-Options\",
-            value: \"DENY\",
+            key: "X-Frame-Options",
+            value: "DENY",
           },
           {
-            key: \"X-Content-Type-Options\",
-            value: \"nosniff\",
+            key: "X-Content-Type-Options",
+            value: "nosniff",
           },
           {
-            key: \"Referrer-Policy\",
-            value: \"origin-when-cross-origin\",
+            key: "Referrer-Policy",
+            value: "origin-when-cross-origin",
           },
           {
-            key: \"Permissions-Policy\",
-            value: \"camera=(), microphone=(), geolocation=()\",
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
           },
         ],
       },
       {
-        source: \"/api/:path*\",
+        source: "/api/:path*",
         headers: [
           {
-            key: \"Access-Control-Allow-Origin\",
-            value: \"*\",
+            key: "Access-Control-Allow-Origin",
+            value: "*",
           },
           {
-            key: \"Access-Control-Allow-Methods\",
-            value: \"GET, POST, PUT, DELETE, OPTIONS\",
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, PUT, DELETE, OPTIONS",
           },
           {
-            key: \"Access-Control-Allow-Headers\",
-            value: \"Content-Type, Authorization\",
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, Authorization",
           },
         ],
       },
       {
         // Cache statique pour les assets
-        source: \"/static/:path*\",
+        source: "/static/:path*",
         headers: [
           {
-            key: \"Cache-Control\",
-            value: \"public, max-age=31536000, immutable\",
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
           },
         ],
       },
@@ -174,8 +174,8 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: \"/home\",
-        destination: \"/\",
+        source: "/home",
+        destination: "/",
         permanent: true,
       },
     ];
@@ -184,7 +184,7 @@ const nextConfig = {
   // Configuration du serveur de développement
   devIndicators: {
     buildActivity: true,
-    buildActivityPosition: \"bottom-right\",
+    buildActivityPosition: "bottom-right",
   },
   
   // Configuration de la compression
@@ -203,13 +203,13 @@ const nextConfig = {
     // Amélioration des performances de navigation
     scrollRestoration: true,
     // Optimisation des imports
-    optimizePackageImports: [\"axios\", \"date-fns\", \"clsx\"],
+    optimizePackageImports: ["axios", "date-fns", "clsx"],
     // Turbo mode pour les builds plus rapides
     turbo: {
       rules: {
-        \"*.svg\": {
-          loaders: [\"@svgr/webpack\"],
-          as: \"*.js\",
+        "*.svg": {
+          loaders: ["@svgr/webpack"],
+          as: "*.js",
         },
       },
     },
@@ -223,13 +223,13 @@ const nextConfig = {
   // Configuration ESLint
   eslint: {
     ignoreDuringBuilds: false,
-    dirs: [\"src\"],
+    dirs: ["src"],
   },
   
-  // generateStaticParams n\"est pas une option de next.config.js
+  // generateStaticParams n'est pas une option de next.config.js
   // Elle doit être définie au niveau de la page ou du layout.
   // Laisser cette clé ici génère un avertissement.
-  // Nous la retirons pour éviter l\"avertissement.
+  // Nous la retirons pour éviter l'avertissement.
   // generateStaticParams: async () => {
   //   return [];
   // },
@@ -245,7 +245,7 @@ const nextConfig = {
   // Configuration pour optimiser les performances
   compiler: {
     // Supprimer les console.log en production
-    removeConsole: process.env.NODE_ENV === \"production\",
+    removeConsole: process.env.NODE_ENV === "production",
   },
 };
 
