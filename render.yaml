@@ -22,7 +22,7 @@ services:
       fi
       
       # Démarrer le serveur
-      node backend/src/server-with-frontend.js
+      cd backend && node src/server-with-frontend.js
       
     envVars:
       - key: NODE_ENV
@@ -52,35 +52,24 @@ services:
       - key: OPENAI_API_KEY
         sync: false
         
-    # Augmenter les ressources pour le build et l\"exécution
-    disk: 2048  # 2GB de disque
-    
     # Configuration des health checks
     healthCheckPath: /health
-    
-    # Configuration des domaines personnalisés (optionnel)
-    # domains:
-    #   - spotbulle-ia.com
     
     # Configuration des variables de build
     buildFilter:
       paths:
         - backend/**
         - frontend/**
+        - build.sh
         - render.yaml
       ignoredPaths:
         - "**/*.md"
         - "**/node_modules/**"
         - "**/.git/**"
+        - "**/coverage/**"
+        - "**/.next/**"
 
 databases:
   - name: spotbulle-ia-db
     plan: basic-256mb
-    
-# Configuration optionnelle pour les services additionnels
-# redis:
-#   - name: spotbulle-ia-redis
-#     plan: starter
-
-
 
