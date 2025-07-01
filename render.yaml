@@ -6,11 +6,9 @@ services:
     plan: starter
     buildCommand: |
       # Installer les dépendances du backend
-      cd backend && npm install &&
-      # Installer les dépendances du frontend
-      cd ../frontend && npm install &&
-      # Build du frontend Next.js
-      npm run build &&
+      cd backend && npm install && \
+      # Installer les dépendances du frontend, y compris les devDependencies
+      cd ../frontend && npm install --production=false && npm run build && \
       # Retourner au répertoire racine
       cd ..
     startCommand: node backend/src/server-with-frontend.js
