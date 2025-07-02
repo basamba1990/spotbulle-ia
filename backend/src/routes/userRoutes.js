@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query } = require('express-validator');
 const userController = require('../controllers/userController');
-const { authenticateToken, optionalAuth } = require("../middleware/authMiddleware");
+const { authMiddleware, optionalAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -82,15 +82,8 @@ router.get('/:id', optionalAuth, userController.getProfile);
 router.get('/:id/videos', optionalAuth, paginationValidation, userController.getUserVideos);
 router.get('/:id/stats', optionalAuth, userController.getUserStats);
 
-// Routes protégées
-router.put("/profile", authenticateToken, ...updateProfileValidation, userController.updateProfile);
+// Routes protégées - Correction de la syntaxe pour éviter l'erreur de spread
+router.put("/profile", authMiddleware, updateProfileValidation, userController.updateProfile);
 
 module.exports = router;
-
-
-
-console.log('Debug: authenticateToken type:', typeof authenticateToken);
-console.log('Debug: updateProfileValidation type:', typeof updateProfileValidation, Array.isArray(updateProfileValidation));
-console.log('Debug: userController.updateProfile type:', typeof userController.updateProfile);
-
 

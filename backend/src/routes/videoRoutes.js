@@ -2,6 +2,7 @@ const express = require('express');
 const { body, query } = require('express-validator');
 const videoController = require('../controllers/videoController');
 const { authMiddleware, optionalAuth } = require('../middleware/authMiddleware');
+const multer = require('multer'); // Ajout de l'import manquant pour multer
 
 const router = express.Router();
 

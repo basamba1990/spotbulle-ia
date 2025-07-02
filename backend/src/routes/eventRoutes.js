@@ -139,8 +139,8 @@ router.post("/", authMiddleware, eventValidation, eventController.createEvent);
 router.put("/:id", authMiddleware, eventValidation, eventController.updateEvent);
 router.delete("/:id", authMiddleware, eventController.deleteEvent);
 
+// Correction de la route qui causait l'erreur - s'assurer que le callback est défini
 router.post("/:id/join", authMiddleware, participationValidation, eventController.joinEvent);
 
 module.exports = router;
-
 
