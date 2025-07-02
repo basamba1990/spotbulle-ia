@@ -1,19 +1,28 @@
 services:
+  # Service principal avec frontend et backend intégrés
   - type: web
     name: spotbulle-ia
     env: node
     plan: starter
-    buildCommand: "./build.sh"
-    startCommand: "cd backend && NODE_ENV=production PORT=10000 node src/server-with-frontend.js"
+    buildCommand: |
+      # Installer les dépendances du backend
+      cd backend && npm install --production=false && \
+      # Installer les dépendances du frontend, y compris les devDependencies
+      cd ../frontend && npm install --production=false && npm run build && \
+      # Retourner au répertoire racine
+      cd ..
+    startCommand: node backend/src/server-with-frontend.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       - key: DATABASE_URL
-        sync: false
+        sync: false # Ou true si vous utilisez un groupe de secrets
       - key: JWT_SECRET
-        generateValue: true
+        value: |-
+          #!/usr/bin/env bash
+          node backend/generate_jwt_secret.js
       - key: JWT_EXPIRES_IN
         value: "7d"
       - key: SUPABASE_URL
@@ -26,15 +35,9 @@ services:
         value: "pitch-videos"
       - key: FRONTEND_URL
         value: "https://spotbulle-ia.onrender.com"
-      - key: NEXT_PUBLIC_API_URL
-        value: "https://spotbulle-ia.onrender.com"
-      - key: NEXT_TELEMETRY_DISABLED
-        value: "1"
       - key: OPENAI_API_KEY
         sync: false
-    healthCheckPath: /health
 
 databases:
   - name: spotbulle-ia-db
     plan: basic-256mb
-
