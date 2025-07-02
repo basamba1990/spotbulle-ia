@@ -274,11 +274,14 @@ const userRateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
   };
 };
 
+// Exporter les middlewares avec les noms corrects
 module.exports = {
   authenticateToken,
   optionalAuth,
   requireRole,
   requireOwnership,
-  userRateLimit
+  userRateLimit,
+  // Alias pour compatibilité avec le code existant
+  authMiddleware: authenticateToken
 };
 
