@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: spotbulle-ia-v2
+    name: spotbulle-ia
     env: node
     plan: starter
     buildCommand: "./build.sh"
@@ -25,9 +25,9 @@ services:
       - key: BUCKET_NAME
         value: "pitch-videos"
       - key: FRONTEND_URL
-        value: "https://spotbulle-ia-v2.onrender.com"
+        value: "https://spotbulle-ia.onrender.com"
       - key: NEXT_PUBLIC_API_URL
-        value: "https://spotbulle-ia-v2.onrender.com"
+        value: "https://spotbulle-ia.onrender.com"
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
       - key: OPENAI_API_KEY
@@ -35,6 +35,6 @@ services:
     healthCheckPath: /health
 
 databases:
-  - name: spotbulle-ia-db-v2
+  - name: spotbulle-ia-db
     plan: basic-256mb
 
