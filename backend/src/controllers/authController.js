@@ -222,22 +222,56 @@ const authController = {
   // Rafraîchir le token
   refreshToken: async (req, res) => {
     try {
-      const token = generateToken(req.user.id);
-      
+      // Le token de rafraîchissement doit être envoyé dans le corps de la requête ou un cookie
+      // Ici, nous supposons qu'il est envoyé dans un cookie 'refreshToken'
+      const refreshToken = req.cookies.refreshToken; // Ou req.body.refreshToken si envoyé dans le corps
+
+      if (!refreshToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Refresh token manquant"
+        });
+      }
+
+      // Vérifier le refresh token
+      let decodedRefreshToken;
+      try {
+        decodedRefreshToken = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET); // Utilisez un secret différent pour le refresh token
+      } catch (error) {
+        return res.status(403).json({
+          success: false,
+          message: "Refresh token invalide ou expiré"
+        });
+      }
+
+      // Trouver l'utilisateur associé au refresh token
+      const user = await User.findByPk(decodedRefreshToken.userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "Utilisateur non trouvé"
+        });
+      }
+
+      // Générer un nouveau token d'accès
+      const newAccessToken = generateToken(user.id);
+
       res.json({
         success: true,
         message: "Token rafraîchi avec succès",
-        data: { token }
+        data: { token: newAccessToken }
       });
     } catch (error) {
       console.error("Erreur rafraîchissement token:", error);
       res.status(500).json({
         success: false,
-        message: "Erreur serveur lors du rafraîchissement du token"
+        message: "Erreur serveur lors du rafraîchissement du token",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
 };
 
 module.exports = authController;
+
 
