@@ -3,7 +3,7 @@ const nextConfig = {
   // Configuration des images
   images: {
     domains: [
-      "your-project.supabase.co",
+      "https://nyxtckjfaajhacboxojd.supabase.co",
       "supabase.co",
       "avatars.githubusercontent.com",
       "lh3.googleusercontent.com",
