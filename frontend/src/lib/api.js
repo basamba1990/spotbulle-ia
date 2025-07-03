@@ -75,12 +75,19 @@ api.interceptors.response.use(
       // Tente de rafraîchir le token
       return new Promise(async (resolve, reject) => {
         try {
-          const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, {}, {
-            withCredentials: true // Important pour envoyer les cookies si le refresh token est dans un cookie
-          });
-          const newToken = refreshResponse.data.token; // Assurez-vous que votre backend renvoie le nouveau token ici
+          // Récupérer le refresh token depuis les cookies ou le localStorage si stocké là
+          const refreshToken = Cookies.get('refresh-token'); // Assurez-vous que ce cookie est défini lors de la connexion
           
-          // Stocke le nouveau token
+          if (!refreshToken) {
+            throw new Error('Refresh token non trouvé');
+          }
+
+          const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken }, {
+            withCredentials: true // Important si le refresh token est aussi dans un cookie HTTP Only
+          });
+          const newToken = refreshResponse.data.data.token; // Assurez-vous que votre backend renvoie le nouveau token ici
+          
+          // Stocke le nouveau token d'accès
           Cookies.set('auth-token', newToken, { expires: 7 }); // Ou la durée de vie appropriée
 
           // Met à jour l'en-tête de la requête originale avec le nouveau token
@@ -93,6 +100,7 @@ api.interceptors.response.use(
           // Si le rafraîchissement échoue, déconnecte l'utilisateur
           processQueue(refreshError, null);
           Cookies.remove('auth-token');
+          Cookies.remove('refresh-token'); // Supprimer aussi le refresh token
           if (typeof window !== 'undefined') {
             window.location.href = '/login';
           }
@@ -117,6 +125,7 @@ api.interceptors.response.use(
           errorMessage = data.message || "Session expirée ou non autorisée.";
           if (typeof window !== 'undefined') {
             Cookies.remove('auth-token');
+            Cookies.remove('refresh-token');
             window.location.href = '/login';
           }
           break;
@@ -151,12 +160,18 @@ export const authAPI = {
     const response = await api.post("/auth/login", credentials);
     if (response.data && response.data.token) {
       Cookies.set('auth-token', response.data.token, { expires: 7 }); // Stocke le token pour 7 jours
+      // Assurez-vous que votre backend renvoie aussi un refresh token lors de la connexion
+      // et stockez-le ici, par exemple dans un cookie séparé
+      if (response.data.data && response.data.data.refreshToken) {
+        Cookies.set('refresh-token', response.data.data.refreshToken, { expires: 30, secure: true, sameSite: 'Lax' }); // Exemple: 30 jours, sécurisé
+      }
     }
     return response;
   },
   logout: async () => {
     const response = await api.post('/auth/logout');
     Cookies.remove('auth-token');
+    Cookies.remove('refresh-token');
     return response;
   },
   me: () => api.get('/auth/me'),
