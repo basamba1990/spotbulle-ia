@@ -3,8 +3,6 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 // Définition de l'URL de base de l'API
-// Utilise la variable d'environnement NEXT_PUBLIC_API_URL,
-// ou un fallback si elle n'est pas définie.
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.onrender.com/api';
 
 // Instance Axios configurée avec l'URL de base et un timeout
@@ -16,19 +14,32 @@ const api = axios.create({
   },
 });
 
+// Variable pour suivre si une requête de rafraîchissement de token est en cours
+let isRefreshing = false;
+// File d'attente pour les requêtes qui doivent être rejouées après le rafraîchissement du token
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Intercepteur de requêtes : Ajoute le token d'authentification à chaque requête
 api.interceptors.request.use(
   (config) => {
-    // Récupère le token 'auth-token' depuis les cookies
     const token = Cookies.get('auth-token');
     if (token) {
-      // Si un token existe, l'ajoute à l'en-tête Authorization au format Bearer
       config.headers.Authorization = `Bearer ${token}`;
     }
-    return config; // Retourne la configuration modifiée de la requête
+    return config;
   },
   (error) => {
-    // Gère les erreurs lors de la configuration de la requête
     return Promise.reject(error);
   }
 );
@@ -36,27 +47,76 @@ api.interceptors.request.use(
 // Intercepteur de réponses : Gère les réponses et les erreurs HTTP de manière centralisée
 api.interceptors.response.use(
   (response) => {
-    // Si la réponse est un succès (code 2xx), la retourne directement
     return response;
   },
-  (error) => {
-    // Si une erreur de réponse HTTP se produit
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Si l'erreur est 401 et que ce n'est pas une requête de rafraîchissement de token
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      // Si une requête de rafraîchissement est déjà en cours, ajoute la requête originale à la file d'attente
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        })
+        .then(token => {
+          originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          return api(originalRequest);
+        })
+        .catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      isRefreshing = true;
+
+      // Tente de rafraîchir le token
+      return new Promise(async (resolve, reject) => {
+        try {
+          const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, {}, {
+            withCredentials: true // Important pour envoyer les cookies si le refresh token est dans un cookie
+          });
+          const newToken = refreshResponse.data.token; // Assurez-vous que votre backend renvoie le nouveau token ici
+          
+          // Stocke le nouveau token
+          Cookies.set('auth-token', newToken, { expires: 7 }); // Ou la durée de vie appropriée
+
+          // Met à jour l'en-tête de la requête originale avec le nouveau token
+          originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+          
+          // Rejoue toutes les requêtes en attente
+          processQueue(null, newToken);
+          resolve(api(originalRequest));
+        } catch (refreshError) {
+          // Si le rafraîchissement échoue, déconnecte l'utilisateur
+          processQueue(refreshError, null);
+          Cookies.remove('auth-token');
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+          reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
+      });
+    }
+
+    // Gestion des autres erreurs HTTP
     if (error.response) {
       const { status, data } = error.response;
       let errorMessage = data.message || `Erreur ${status} du serveur`;
 
-      // Logique de gestion des erreurs basée sur le code de statut HTTP
       switch (status) {
         case 400:
           errorMessage = data.message || "Requête invalide.";
           break;
         case 401:
+          // Si ce n'est pas une erreur de rafraîchissement, ou si le rafraîchissement a échoué
           errorMessage = data.message || "Session expirée ou non autorisée.";
-          // Redirige vers la page de connexion en cas d'erreur 401
-          // Assurez-vous que cette logique est exécutée côté client (navigateur)
           if (typeof window !== 'undefined') {
-            // Supprime le token invalide pour éviter des boucles de redirection
-            Cookies.remove('auth-token'); 
+            Cookies.remove('auth-token');
             window.location.href = '/login';
           }
           break;
@@ -73,14 +133,11 @@ api.interceptors.response.use(
           errorMessage = data.message || `Une erreur inattendue est survenue (Code: ${status}).`;
       }
       console.error(`Erreur API (${status}):`, errorMessage, data.errors);
-      // Rejette la promesse avec l'erreur de réponse pour que le code appelant puisse la gérer
-      return Promise.reject(error.response); 
+      return Promise.reject(error.response);
     } else if (error.request) {
-      // L'erreur est une absence de réponse du serveur (ex: réseau coupé)
       console.error("Erreur réseau: Aucune réponse reçue.", error.message);
       return Promise.reject(new Error("Erreur de connexion au serveur. Veuillez vérifier votre connexion internet."));
     } else {
-      // L'erreur est due à la configuration de la requête elle-même
       console.error("Erreur de configuration de la requête:", error.message);
       return Promise.reject(new Error("Erreur lors de la préparation de la requête."));
     }
@@ -90,8 +147,18 @@ api.interceptors.response.use(
 // --- API d'authentification ---
 export const authAPI = {
   register: (userData) => api.post("/auth/register", userData),
-  login: (credentials) => api.post("/auth/login", credentials),
-  logout: () => api.post('/auth/logout'),
+  login: async (credentials) => {
+    const response = await api.post("/auth/login", credentials);
+    if (response.data && response.data.token) {
+      Cookies.set('auth-token', response.data.token, { expires: 7 }); // Stocke le token pour 7 jours
+    }
+    return response;
+  },
+  logout: async () => {
+    const response = await api.post('/auth/logout');
+    Cookies.remove('auth-token');
+    return response;
+  },
   me: () => api.get('/auth/me'),
   refreshToken: () => api.post('/auth/refresh-token'),
 };
@@ -122,8 +189,6 @@ export const videoAPI = {
   getVideoById: (videoId) => api.get(`/videos/${videoId}`),
   uploadVideo: (formData) => api.post("/videos/upload", formData, {
     headers: {
-      // Axios gère automatiquement le Content-Type pour FormData,
-      // mais le spécifier explicitement peut être utile pour la clarté.
       'Content-Type': 'multipart/form-data', 
     },
     timeout: 300000, // Timeout étendu à 5 minutes pour l'upload de fichiers volumineux
@@ -136,11 +201,12 @@ export const videoAPI = {
 // --- API de l'IA ---
 export const aiAPI = {
   searchVideos: (keywords, page = 1, limit = 12) => api.get(`/ai/search?keywords=${encodeURIComponent(keywords)}&page=${page}&limit=${limit}`),
+  analyzeVideo: (videoId) => api.post(`/ia/videos/${videoId}/analyser`),
+  getVideoAnalysisResults: (videoId) => api.get(`/ia/videos/${videoId}/resultats`),
 };
 
 // --- Utilitaires API ---
 export const apiUtils = {
-  // Fonction utilitaire pour gérer les erreurs renvoyées par les intercepteurs
   handleError: (error) => {
     if (error.response) {
       return {
@@ -151,7 +217,7 @@ export const apiUtils = {
     } else if (error.request) {
       return {
         message: 'Erreur de connexion au serveur',
-        status: 0, // Statut 0 pour les erreurs réseau
+        status: 0,
         errors: [],
       };
     } else {
@@ -163,7 +229,6 @@ export const apiUtils = {
     }
   },
 
-  // Formatage des paramètres de pagination
   formatPaginationParams: (page = 1, limit = 10, filters = {}) => {
     return {
       page,
@@ -172,7 +237,6 @@ export const apiUtils = {
     };
   },
 
-  // Validation des fichiers vidéo avant upload
   validateVideoFile: (file) => {
     const allowedTypes = process.env.NEXT_PUBLIC_ALLOWED_VIDEO_TYPES?.split(',') || [
       'video/mp4',
@@ -185,7 +249,6 @@ export const apiUtils = {
       'video/3gpp2'
     ];
     
-    // Mise à jour de la taille maximale à 250 Mo (250 * 1024 * 1024 octets)
     const maxSize = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 262144000; // 250MB
 
     if (!allowedTypes.includes(file.type)) {
@@ -199,15 +262,12 @@ export const apiUtils = {
     return true;
   },
 
-  // Formatage des URLs d'images
   formatImageUrl: (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    // Assurez-vous que API_URL est correctement défini pour les assets
-    return `${API_URL.replace('/api', '')}${url}`; // Retire '/api' de l'URL de base pour les assets
+    return `${API_URL.replace('/api', '')}${url}`;
   },
 
-  // Formatage des dates
   formatDate: (date) => {
     if (!date) return '';
     return new Date(date).toLocaleDateString('fr-FR', {
@@ -217,7 +277,6 @@ export const apiUtils = {
     });
   },
 
-  // Formatage des dates et heures
   formatDateTime: (date) => {
     if (!date) return '';
     return new Date(date).toLocaleString('fr-FR', {
@@ -229,7 +288,6 @@ export const apiUtils = {
     });
   },
 
-  // Formatage de la durée en secondes en format HH:MM:SS ou MM:SS
   formatDuration: (seconds) => {
     if (isNaN(seconds) || seconds < 0) return '0:00';
     
@@ -247,7 +305,6 @@ export const apiUtils = {
     return `${minutes}:${paddedSeconds}`;
   },
 
-  // Formatage de la taille des fichiers en octets
   formatFileSize: (bytes) => {
     if (isNaN(bytes) || bytes < 0) return '0 B';
     
@@ -258,5 +315,6 @@ export const apiUtils = {
   },
 };
 
-// Export par défaut de l'instance Axios configurée
 export default api;
+
+
