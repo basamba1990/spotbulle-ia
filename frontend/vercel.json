@@ -62,14 +62,8 @@
       "permanent": true
     }
   ],
-  "functions": {
-    "src/pages/api/**/*.js": {
-      "maxDuration": 30
-    }
-  },
   "regions": ["fra1"],
   "github": {
     "autoAlias": false
   }
 }
-
