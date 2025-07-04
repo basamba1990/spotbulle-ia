@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "spotbulle-ia-frontend",
+  "name": "spotbulle-ia",
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
