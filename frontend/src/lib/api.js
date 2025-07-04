@@ -180,11 +180,11 @@ export const authAPI = {
 
 // --- API des utilisateurs ---
 export const userAPI = {
-  getProfile: (userId) => api.get(`/users/${userId}`),
-  updateProfile: (userData) => api.put("/users/profile", userData),
-  getUserVideos: (userId, params = {}) => api.get(`/users/${userId}/videos`, { params }),
-  getUserStats: (userId) => api.get(`/users/${userId}/stats`),
-  searchUsers: (params = {}) => api.get('/users/search', { params }),
+  getProfile: (userId) => api.get(`/api/users/${userId}`),
+  updateProfile: (userData) => api.put("/api/users/profile", userData),
+  getUserVideos: (userId, params = {}) => api.get(`/api/users/${userId}/videos`, { params }),
+  getUserStats: (userId) => api.get(`/api/users/${userId}/stats`),
+  searchUsers: (params = {}) => api.get("/api/users/search", { params }),
 };
 
 // --- API des événements ---
@@ -215,9 +215,9 @@ export const videoAPI = {
 
 // --- API de l'IA ---
 export const aiAPI = {
-  searchVideos: (keywords, page = 1, limit = 12) => api.get(`/ai/search?keywords=${encodeURIComponent(keywords)}&page=${page}&limit=${limit}`),
-  analyzeVideo: (videoId) => api.post(`/ia/videos/${videoId}/analyser`),
-  getVideoAnalysisResults: (videoId) => api.get(`/ia/videos/${videoId}/resultats`),
+  searchVideos: (keywords, page = 1, limit = 12) => api.get(`/api/ai/search?keywords=${encodeURIComponent(keywords)}&page=${page}&limit=${limit}`),
+  analyzeVideo: (videoId) => api.post(`/api/ia/videos/${videoId}/analyser`),
+  getVideoAnalysisResults: (videoId) => api.get(`/api/ia/videos/${videoId}/resultats`),
 };
 
 // --- Utilitaires API ---
