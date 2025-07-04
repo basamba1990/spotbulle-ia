@@ -1,31 +1,38 @@
-# SpotBulle IA
+# SpotBulle IA - Fichiers Corrigés pour Déploiement Séparé
 
-Bienvenue sur le dépôt GitHub de SpotBulle IA. Ce projet est une plateforme de partage de vidéos d'événements, conçue avec une architecture moderne séparant le frontend (interface utilisateur) et le backend (API).
+## 📁 Contenu de cette Archive
 
-## Architecture du Projet
+Cette archive contient les fichiers corrigés pour résoudre l'erreur "Aucun fichier HTML Next.js trouvé" et migrer vers un déploiement séparé.
 
-SpotBulle IA est composé de deux parties principales :
+### Fichiers Backend
+- `backend/src/server.js` - Nouveau serveur API pure (remplace server-with-frontend.js)
+- `backend/package.json` - Configuration mise à jour
 
-1.  **Frontend (Interface Utilisateur) :**
-    *   **Description :** C'est l'application web avec laquelle les utilisateurs interagissent directement. Elle gère l'affichage des pages, la navigation, les formulaires de connexion/inscription, le téléchargement de vidéos, etc.
-    *   **URL d'accès :** [https://spotbulle-ia.vercel.app/login](https://spotbulle-ia.vercel.app/login)
-    *   **Déploiement :** Cette partie est déployée sur Vercel.
+### Fichiers Frontend  
+- `frontend/.env.production` - Variables d'environnement pour Vercel
+- `frontend/next.config.vercel.js` - Configuration Next.js optimisée
+- `frontend/vercel.production.json` - Configuration de déploiement Vercel
 
-2.  **Backend (API) :**
-    *   **Description :** Il s'agit du service d'API qui gère la logique métier, la gestion des utilisateurs, des événements, des vidéos, et l'interaction avec la base de données. Il fournit les données nécessaires au frontend.
-    *   **URL d'accès :** [https://spotbulle-ia.onrender.com](https://spotbulle-ia.onrender.com)
-    *   **Note importante :** Cette URL est un point d'accès API et n'est pas conçue pour être visitée directement par les utilisateurs finaux via un navigateur web. Accéder à cette URL affichera une réponse JSON décrivant les points d'accès de l'API, ce qui est un comportement normal pour un service backend.
-    *   **Déploiement :** Cette partie est déployée sur Render.
+### Documentation
+- `guide-deploiement-spotbulle-ia.md` - Guide complet de déploiement
 
-## Comment ça marche ?
+## 🚀 Instructions Rapides
 
-Le frontend (déployé sur Vercel) communique avec le backend (déployé sur Render) via des requêtes API. Lorsque vous utilisez l'application SpotBulle IA via l'URL Vercel, toutes les interactions nécessitant des données ou des opérations côté serveur sont gérées par le backend.
+1. **Lisez le guide complet** : `guide-deploiement-spotbulle-ia.md`
+2. **Remplacez les fichiers** dans votre projet
+3. **Déployez le backend** sur Render.com
+4. **Déployez le frontend** sur Vercel
+5. **Configurez les variables** d'environnement
 
-## Liens Utiles
+## ✅ Résolution du Problème
 
-*   **Application Frontend :** [https://spotbulle-ia.vercel.app/login](https://spotbulle-ia.vercel.app/login)
-*   **Dépôt GitHub (ce dépôt) :** [https://github.com/basamba1990/spotbulle-ia](https://github.com/basamba1990/spotbulle-ia)
+Cette solution :
+- ✅ Élimine l'erreur "Aucun fichier HTML Next.js trouvé"
+- ✅ Sépare backend et frontend pour de meilleures performances
+- ✅ Optimise pour Render (backend) et Vercel (frontend)
+- ✅ Améliore la scalabilité et la maintenance
 
-Pour toute question ou contribution, n'hésitez pas à consulter les issues ou à nous contacter.
+## 📞 Support
 
+Consultez le guide détaillé pour les instructions complètes et le dépannage.
 
