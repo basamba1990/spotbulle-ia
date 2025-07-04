@@ -92,6 +92,7 @@ app.use(cors({
     const allowedOrigins = [
       'https://spotbulle-ia.vercel.app',
       'https://spotbulle-ia.onrender.com',
+      'https://spotbulle-jrxlpa9ha-samba-bas-projects.vercel.app',
       'http://localhost:3000',
       'http://localhost:3001'
     ];
@@ -121,7 +122,7 @@ app.use(express.json({ limit: '250mb' }));
 app.use(express.urlencoded({ extended: true, limit: '250mb' }));
 
 // Route de santé améliorée
-app.get('/health', async (req, res) => {
+app.get("/api/health", async (req, res) => {
   try {
     const healthStatus = {
       status: 'OK',
@@ -470,7 +471,7 @@ const serveNextPage = (req, res, next) => {
           <script>
             console.log('🚀 SpotBulle IA Backend - Version 1.1.1');
             console.log('📡 API disponible sur:', window.location.origin + '/api');
-            console.log('🔍 Health check:', window.location.origin + '/health');
+            console.log("🔍 Health check:", window.location.origin + "/api/health");
             
             // Tentative de redirection vers le frontend si disponible
             setTimeout(() => {
