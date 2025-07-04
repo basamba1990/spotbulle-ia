@@ -2,8 +2,7 @@
 
 set -e # Exit immediately if a command exits with a non-zero status.
 
-# SOLUTION IMMEDIATE - Script de build modifié pour éviter les problèmes de cache Render
-echo "🚀 SOLUTION IMMEDIATE - Build SpotBulle IA v2.0"
+echo "🚀 Build SpotBulle IA v2.0"
 echo "🔧 Node version: $(node --version)"
 echo "🔧 NPM version: $(npm --version)"
 echo "🔧 Environment: ${NODE_ENV:-development}"
@@ -27,40 +26,47 @@ echo "📦 Installation backend..."
 cd backend
 npm install --only=production --no-audit --no-fund
 echo "✅ Backend prêt"
+cd .. # Retour au répertoire racine
 
-# Frontend  
+# Frontend
 echo "📦 Installation frontend..."
-cd ../frontend
+cd frontend
 npm install --no-audit --no-fund
 echo "✅ Frontend prêt"
 
-# Vérification simple
-echo "🔍 Vérification..."
-if [ ! -d "node_modules/tailwindcss" ]; then
-  echo "❌ tailwindcss manquant"
-  exit 1
-fi
-echo "✅ tailwindcss trouvé"
-
-# Build
+# Build Frontend
 echo "🏗️ Build Next.js..."
 npm run build
 
-# Vérification du build
+# Vérification du build frontend
 if [ ! -d ".next" ] || [ ! -f ".next/BUILD_ID" ]; then
-  echo "❌ Build échoué"
+  echo "❌ Build frontend échoué"
   exit 1
 fi
+echo "✅ Build frontend réussi - BUILD_ID: $(cat .next/BUILD_ID)"
 
-echo "✅ Build réussi - BUILD_ID: $(cat .next/BUILD_ID)"
-
-# Copie des fichiers statiques
-echo "📁 Copie des assets..."
-cd ..
+# Copie des fichiers statiques du frontend vers le répertoire public du backend
+echo "📁 Copie des assets du frontend vers le répertoire public du backend..."
+cd .. # Retour au répertoire racine du projet
 mkdir -p public/static
+
+# Supprimer le contenu existant pour éviter les conflits
+rm -rf public/static/*
+
+# Copier les fichiers statiques de Next.js
 if [ -d "frontend/.next/static" ]; then
-  cp -r frontend/.next/static/* public/static/ 2>/dev/null || true
+  cp -r frontend/.next/static/* public/static/ || { echo "❌ Erreur lors de la copie des fichiers statiques Next.js."; exit 1; }
+else
+  echo "⚠️ Le répertoire frontend/.next/static n'existe pas. Vérifiez le build du frontend."
 fi
 
-echo "🎉 SOLUTION IMMEDIATE - Build terminé avec succès !"
+# Copier les fichiers publics du frontend (si existants)
+if [ -d "frontend/public" ]; then
+  cp -r frontend/public/* public/ || { echo "❌ Erreur lors de la copie des fichiers publics du frontend."; exit 1; }
+else
+  echo "⚠️ Le répertoire frontend/public n'existe pas."
+fi
+
+echo "🎉 Build terminé avec succès !"
+
 
