@@ -1,5 +1,5 @@
 {
-  "name": "spotbulle-ia-backend",
+  "name": "spotbulle-ia",
   "version": "1.1.1",
   "description": "Backend API pour SpotBulle IA - Plateforme de partage vidéo avec intelligence artificielle",
   "main": "src/server.js",
