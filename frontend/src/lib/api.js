@@ -1,9 +1,8 @@
-// src/lib/api.js
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
 // Définition de l'URL de base de l'API
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.onrender.com/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.vercel.app/api';
 
 // Instance Axios configurée avec l'URL de base et un timeout
 const api = axios.create({
@@ -12,6 +11,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important pour envoyer et recevoir des cookies
 });
 
 // Variable pour suivre si une requête de rafraîchissement de token est en cours
@@ -53,6 +53,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Si l'erreur est 401 et que ce n'est pas une requête de rafraîchissement de token
+    // et que la requête originale n'a pas déjà été retentée
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -63,10 +64,10 @@ api.interceptors.response.use(
         })
         .then(token => {
           originalRequest.headers['Authorization'] = 'Bearer ' + token;
-          return api(originalRequest);
+          return api(originalRequest); // Rejoue la requête originale avec le nouveau token
         })
         .catch(err => {
-          return Promise.reject(err);
+          return Promise.reject(err); // Propage l'erreur si le rafraîchissement échoue
         });
       }
 
@@ -75,36 +76,43 @@ api.interceptors.response.use(
       // Tente de rafraîchir le token
       return new Promise(async (resolve, reject) => {
         try {
-          // Récupérer le refresh token depuis les cookies ou le localStorage si stocké là
-          const refreshToken = Cookies.get('refresh-token'); // Assurez-vous que ce cookie est défini lors de la connexion
+          const refreshToken = Cookies.get('refresh-token');
           
           if (!refreshToken) {
-            throw new Error('Refresh token non trouvé');
+            // Si pas de refresh token, on ne peut pas rafraîchir, déconnecte l'utilisateur
+            throw new Error('Refresh token non trouvé. Déconnexion.');
           }
 
+          // Appel à l'API de rafraîchissement de token
           const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken }, {
-            withCredentials: true // Important si le refresh token est aussi dans un cookie HTTP Only
+            withCredentials: true // Nécessaire si le refresh token est envoyé via cookie
           });
+          
           const newToken = refreshResponse.data.data.token; // Assurez-vous que votre backend renvoie le nouveau token ici
+          const newRefreshToken = refreshResponse.data.data.refreshToken; // Si le backend renvoie un nouveau refresh token
           
           // Stocke le nouveau token d'accès
-          Cookies.set('auth-token', newToken, { expires: 7 }); // Ou la durée de vie appropriée
+          Cookies.set('auth-token', newToken, { expires: 7, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax' });
+          if (newRefreshToken) {
+            Cookies.set('refresh-token', newRefreshToken, { expires: 30, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax' });
+          }
 
           // Met à jour l'en-tête de la requête originale avec le nouveau token
           originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
           
           // Rejoue toutes les requêtes en attente
           processQueue(null, newToken);
-          resolve(api(originalRequest));
+          resolve(api(originalRequest)); // Rejoue la requête originale qui a échoué
         } catch (refreshError) {
           // Si le rafraîchissement échoue, déconnecte l'utilisateur
+          console.error('Erreur lors du rafraîchissement du token:', refreshError);
           processQueue(refreshError, null);
           Cookies.remove('auth-token');
-          Cookies.remove('refresh-token'); // Supprimer aussi le refresh token
+          Cookies.remove('refresh-token');
           if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            window.location.href = '/login'; // Redirige vers la page de connexion
           }
-          reject(refreshError);
+          reject(refreshError); // Propage l'erreur
         } finally {
           isRefreshing = false;
         }
@@ -123,7 +131,7 @@ api.interceptors.response.use(
         case 401:
           // Si ce n'est pas une erreur de rafraîchissement, ou si le rafraîchissement a échoué
           errorMessage = data.message || "Session expirée ou non autorisée.";
-          if (typeof window !== 'undefined') {
+          if (typeof window !== 'undefined' && !originalRequest._retry) { // Ajout de !originalRequest._retry pour éviter une double redirection
             Cookies.remove('auth-token');
             Cookies.remove('refresh-token');
             window.location.href = '/login';
@@ -159,11 +167,11 @@ export const authAPI = {
   login: async (credentials) => {
     const response = await api.post("/auth/login", credentials);
     if (response.data && response.data.token) {
-      Cookies.set('auth-token', response.data.token, { expires: 7 }); // Stocke le token pour 7 jours
+      Cookies.set('auth-token', response.data.token, { expires: 7, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax' }); // Stocke le token pour 7 jours
       // Assurez-vous que votre backend renvoie aussi un refresh token lors de la connexion
       // et stockez-le ici, par exemple dans un cookie séparé
       if (response.data.data && response.data.data.refreshToken) {
-        Cookies.set('refresh-token', response.data.data.refreshToken, { expires: 30, secure: true, sameSite: 'Lax' }); // Exemple: 30 jours, sécurisé
+        Cookies.set('refresh-token', response.data.data.refreshToken, { expires: 30, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax' }); // Exemple: 30 jours, sécurisé
       }
     }
     return response;
@@ -326,10 +334,8 @@ export const apiUtils = {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     
-    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`; 
   },
 };
 
 export default api;
-
-
