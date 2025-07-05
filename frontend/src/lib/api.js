@@ -2,7 +2,7 @@ import axios from 'axios';
 // import Cookies from 'js-cookie'; // Supprimer cette ligne
 
 // Définition de l'URL de base de l'API
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.vercel.app/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.onrender.com';
 
 // Instance Axios configurée avec l'URL de base et un timeout
 const api = axios.create({
