@@ -1,5 +1,5 @@
 import axios from 'axios';
-import Cookies from 'js-cookie';
+// import Cookies from 'js-cookie'; // Supprimer cette ligne
 
 // Définition de l'URL de base de l'API
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.vercel.app/api';
@@ -11,7 +11,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important pour envoyer et recevoir des cookies
+  withCredentials: true, // Important pour envoyer et recevoir des cookies (si utilisés)
 });
 
 // Variable pour suivre si une requête de rafraîchissement de token est en cours
@@ -33,7 +33,7 @@ const processQueue = (error, token = null) => {
 // Intercepteur de requêtes : Ajoute le token d'authentification à chaque requête
 api.interceptors.request.use(
   (config) => {
-    const token = Cookies.get('auth-token');
+    const token = localStorage.getItem('authToken'); // Utiliser localStorage
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -76,7 +76,7 @@ api.interceptors.response.use(
       // Tente de rafraîchir le token
       return new Promise(async (resolve, reject) => {
         try {
-          const refreshToken = Cookies.get('refresh-token');
+          const refreshToken = localStorage.getItem('refreshToken'); // Utiliser localStorage
           
           if (!refreshToken) {
             // Si pas de refresh token, on ne peut pas rafraîchir, déconnecte l'utilisateur
@@ -91,10 +91,10 @@ api.interceptors.response.use(
           const newToken = refreshResponse.data.data.token; // Assurez-vous que votre backend renvoie le nouveau token ici
           const newRefreshToken = refreshResponse.data.data.refreshToken; // Si le backend renvoie un nouveau refresh token
           
-          // Stocke le nouveau token d'accès
-          Cookies.set('auth-token', newToken, { expires: 7, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax' });
+          // Stocke le nouveau token d'accès dans localStorage
+          localStorage.setItem('authToken', newToken);
           if (newRefreshToken) {
-            Cookies.set('refresh-token', newRefreshToken, { expires: 30, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax' });
+            localStorage.setItem('refreshToken', newRefreshToken);
           }
 
           // Met à jour l'en-tête de la requête originale avec le nouveau token
@@ -107,8 +107,8 @@ api.interceptors.response.use(
           // Si le rafraîchissement échoue, déconnecte l'utilisateur
           console.error('Erreur lors du rafraîchissement du token:', refreshError);
           processQueue(refreshError, null);
-          Cookies.remove('auth-token');
-          Cookies.remove('refresh-token');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
           if (typeof window !== 'undefined') {
             window.location.href = '/login'; // Redirige vers la page de connexion
           }
@@ -132,8 +132,8 @@ api.interceptors.response.use(
           // Si ce n'est pas une erreur de rafraîchissement, ou si le rafraîchissement a échoué
           errorMessage = data.message || "Session expirée ou non autorisée.";
           if (typeof window !== 'undefined' && !originalRequest._retry) { // Ajout de !originalRequest._retry pour éviter une double redirection
-            Cookies.remove('auth-token');
-            Cookies.remove('refresh-token');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
             window.location.href = '/login';
           }
           break;
@@ -167,19 +167,19 @@ export const authAPI = {
   login: async (credentials) => {
     const response = await api.post("/auth/login", credentials);
     if (response.data && response.data.token) {
-      Cookies.set('auth-token', response.data.token, { expires: 7, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax' }); // Stocke le token pour 7 jours
+      localStorage.setItem('authToken', response.data.token); // Stocke le token dans localStorage
       // Assurez-vous que votre backend renvoie aussi un refresh token lors de la connexion
-      // et stockez-le ici, par exemple dans un cookie séparé
+      // et stockez-le ici, par exemple dans localStorage
       if (response.data.data && response.data.data.refreshToken) {
-        Cookies.set('refresh-token', response.data.data.refreshToken, { expires: 30, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax' }); // Exemple: 30 jours, sécurisé
+        localStorage.setItem('refreshToken', response.data.data.refreshToken);
       }
     }
     return response;
   },
   logout: async () => {
     const response = await api.post('/auth/logout');
-    Cookies.remove('auth-token');
-    Cookies.remove('refresh-token');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
     return response;
   },
   me: () => api.get('/auth/me'),
@@ -339,3 +339,5 @@ export const apiUtils = {
 };
 
 export default api;
+
+
