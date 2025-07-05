@@ -22,7 +22,24 @@ const upload = multer({
     fileSize: 250 * 1024 * 1024 // 250MB
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ["video/mp4", "video/quicktime", "video/x-quicktime", "video/avi", "video/wmv", "video/webm", "video/3gpp", "video/3gpp2"];
+    const allowedTypes = [
+      "video/mp4", 
+      "video/quicktime", 
+      "video/x-quicktime", 
+      "video/avi", 
+      "video/wmv", 
+      "video/webm", 
+      "video/3gpp", 
+      "video/3gpp2",
+      "video/x-msvideo",
+      "video/x-ms-wmv",
+      "video/mp2t",
+      "video/x-flv",
+      "video/x-matroska",
+      "video/ogg",
+      "video/mpeg",
+      "video/x-m4v"
+    ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
