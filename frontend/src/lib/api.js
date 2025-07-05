@@ -112,6 +112,40 @@ export const authAPI = {
   refreshToken: (refreshToken) => api.post('/auth/refresh-token', { refreshToken }),
 };
 
+export const videoAPI = {
+  uploadVideo: (formData) => {
+    return api.post('/videos/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  getVideos: () => api.get('/videos'),
+  getVideoById: (id) => api.get(`/videos/${id}`),
+  deleteVideo: (id) => api.delete(`/videos/${id}`),
+  updateVideo: (id, data) => api.put(`/videos/${id}`, data),
+};
+
+export const userAPI = {
+  getUserStats: (userId) => api.get(`/users/${userId}/stats`),
+  getUserVideos: (userId, params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return api.get(`/users/${userId}/videos${queryParams ? `?${queryParams}` : ''}`);
+  },
+  updateProfile: (userId, data) => api.put(`/users/${userId}`, data),
+};
+
+export const eventAPI = {
+  getEvents: (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return api.get(`/events${queryParams ? `?${queryParams}` : ''}`);
+  },
+  getEventById: (id) => api.get(`/events/${id}`),
+  createEvent: (data) => api.post('/events', data),
+  updateEvent: (id, data) => api.put(`/events/${id}`, data),
+  deleteEvent: (id) => api.delete(`/events/${id}`),
+};
+
 export const apiUtils = {
   // Fonction pour les requêtes nécessitant une authentification
   authenticatedRequest: (method, url, data = {}) => {
@@ -121,6 +155,102 @@ export const apiUtils = {
   optionalAuthRequest: (method, url, data = {}) => {
     return api[method](url, data);
   },
+  // Validation des fichiers vidéo
+  validateVideoFile: (file) => {
+    const allowedTypes = [
+      'video/mp4',
+      'video/avi', 
+      'video/mov',
+      'video/quicktime',
+      'video/x-msvideo',
+      'video/x-ms-wmv',
+      'video/webm',
+      'video/3gpp',
+      'video/3gpp2'
+    ];
+    
+    const allowedExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.webm', '.3gp', '.3g2'];
+    
+    const maxSize = 104857600; // 100MB
+    
+    if (!file) {
+      throw new Error('Aucun fichier sélectionné');
+    }
+    
+    // Vérifier la taille
+    if (file.size > maxSize) {
+      throw new Error('Le fichier est trop volumineux. Taille maximum: 100MB');
+    }
+    
+    // Vérifier le type MIME
+    if (!allowedTypes.includes(file.type)) {
+      // Vérifier l'extension si le type MIME n'est pas reconnu
+      const fileName = file.name.toLowerCase();
+      const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+      
+      if (!hasValidExtension) {
+        throw new Error('Type de fichier non autorisé. Formats acceptés : MP4, MOV, QuickTime, AVI, WMV, WebM, 3GP, 3G2');
+      }
+    }
+    
+    return true;
+  },
+  // Formater la taille des fichiers
+  formatFileSize: (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  },
+  // Gestion des erreurs
+  handleError: (error) => {
+    if (error.response) {
+      // Erreur de réponse du serveur
+      return {
+        message: error.response.data?.message || 'Erreur du serveur',
+        status: error.response.status,
+        data: error.response.data
+      };
+    } else if (error.request) {
+      // Erreur de réseau
+      return {
+        message: 'Erreur de connexion au serveur',
+        status: 0,
+        data: null
+      };
+    } else {
+      // Autre erreur
+      return {
+        message: error.message || 'Une erreur est survenue',
+        status: 0,
+        data: null
+      };
+    }
+  },
+  // Formater les dates
+  formatDate: (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+      return 'hier';
+    } else if (diffDays < 7) {
+      return `il y a ${diffDays} jours`;
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `il y a ${weeks} semaine${weeks > 1 ? 's' : ''}`;
+    } else {
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
+  }
 };
 
 export default api;
