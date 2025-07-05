@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import Cookies from 'js-cookie';
+// import Cookies from 'js-cookie'; // Supprimer cette ligne
 import { authAPI, apiUtils } from '../lib/api';
 
 // Types d'actions
@@ -80,7 +81,7 @@ const authReducer = (state, action) => {
         token: null,
         isAuthenticated: false,
         isLoading: false,
-        error: null,
+        error: null
       };
 
     case AUTH_ACTIONS.UPDATE_USER:
@@ -123,18 +124,18 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  // Sauvegarder le token dans les cookies
+  // Sauvegarder le token dans localStorage
   useEffect(() => {
     if (state.token) {
-      Cookies.set('auth-token', state.token, { expires: 7 });
+      localStorage.setItem('authToken', state.token);
     } else {
-      Cookies.remove('auth-token');
+      localStorage.removeItem('authToken');
     }
   }, [state.token]);
 
   // Charger l'utilisateur depuis le token
   const loadUser = async () => {
-    const token = Cookies.get('auth-token');
+    const token = localStorage.getItem('authToken');
     
     if (!token) {
       // CORRECTION: Ne pas afficher d'erreur si aucun token au chargement initial
@@ -159,7 +160,7 @@ export const AuthProvider = ({ children }) => {
         type: AUTH_ACTIONS.LOAD_USER_ERROR, 
         payload: 'Session expirée, veuillez vous reconnecter' 
       });
-      Cookies.remove('auth-token');
+      localStorage.removeItem('authToken');
     }
   };
 
@@ -294,7 +295,7 @@ export const AuthProvider = ({ children }) => {
   // Fonction de déconnexion
   const logout = () => {
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
-    Cookies.remove('auth-token');
+    localStorage.removeItem('authToken');
   };
 
   // Fonction pour mettre à jour l'utilisateur
@@ -325,4 +326,6 @@ export const AuthProvider = ({ children }) => {
 };
 
 export default AuthContext;
+
+
 
