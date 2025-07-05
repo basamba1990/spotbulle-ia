@@ -269,7 +269,18 @@ export const apiUtils = {
       'video/wmv',
       'video/webm',
       'video/3gpp',
-      'video/3gpp2'
+      'video/3gpp2',
+      'video/x-msvideo', // Ajout pour AVI
+      'video/x-ms-wmv',  // Ajout pour WMV
+      'video/mp2t',      // Ajout pour TS (MPEG-2 Transport Stream)
+      'video/3gpp',      // Ajout pour 3GP
+      'video/3gpp2',     // Ajout pour 3G2
+      'video/x-flv',     // Ajout pour FLV
+      'video/x-matroska',// Ajout pour MKV
+      'video/ogg',       // Ajout pour OGG
+      'video/mpeg',      // Ajout pour MPEG
+      'video/x-m4v',     // Ajout pour M4V
+      'video/quicktime'  // Ajout pour MOV
     ];
     
     const maxSize = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 262144000; // 250MB
