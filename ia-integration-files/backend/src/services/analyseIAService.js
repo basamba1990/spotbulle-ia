@@ -114,11 +114,22 @@ class AnalyseIAService {
             apiKey: this.openaiApiKey,
         });
 
-        const transcription = await openai.audio.transcriptions.create({
-            file: fs.createReadStream(audioPath),
-            model: "whisper-1",
-        });
-        return transcription.text;
+        try {
+            const transcription = await openai.audio.transcriptions.create({
+                file: fs.createReadStream(audioPath),
+                model: "whisper-1",
+            });
+            return transcription.text;
+        } catch (error) {
+            if (error.response) {
+                console.error("Erreur de l'API OpenAI:", error.response.status, error.response.data);
+            } else if (error.request) {
+                console.error("Pas de réponse de l'API OpenAI:", error.request);
+            } else {
+                console.error("Erreur lors de la configuration de la requête OpenAI:", error.message);
+            }
+            throw error; // Re-lancer l'erreur pour qu'elle soit gérée plus haut
+        }
     }
 
     /**
@@ -291,5 +302,6 @@ class AnalyseIAService {
 }
 
 module.exports = AnalyseIAService;
+
 
 
