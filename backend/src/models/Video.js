@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const { sequelize } = require("../../config/db-production");
+const { sequelize } = require("../../config/db-production.js");
 const Event = require("./Event"); // Importez le modèle Event
 const Participation = require("./Participation"); // Importez le modèle Participation
 const User = require("./User"); // Importez le modèle User

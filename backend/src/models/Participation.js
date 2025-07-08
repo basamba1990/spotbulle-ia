@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require("../../config/db-production");
+const { sequelize } = require("../../config/db-production.js");
 
 const Participation = sequelize.define('Participation', {
   id: {
