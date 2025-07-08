@@ -400,32 +400,6 @@ export const events = {
   }
 };
 
-// Exports pour compatibilité avec l'ancien code
-export const videoAPI = videos;
-export const eventAPI = events;
-export const authAPI = auth;
-export const iaAPI = ia;
-
-// Utilitaires API
-export const apiUtils = {
-  validateFile,
-  checkHealth,
-  formatFileSize: (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  },
-  isValidVideoType: (file) => {
-    const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
-    return allowedTypes.includes(file.type);
-  },
-  getApiUrl: () => API_BASE_URL,
-  getMaxFileSize: () => MAX_FILE_SIZE,
-  getEnvironment: () => ENVIRONMENT
-};
-
 // Export de l'instance axios pour les cas d'usage avancés
 export { api };
 
@@ -436,11 +410,6 @@ export default {
   videos,
   ia,
   events,
-  api,
-  videoAPI: videos,
-  eventAPI: events,
-  authAPI: auth,
-  iaAPI: ia,
-  apiUtils
+  api
 };
 
