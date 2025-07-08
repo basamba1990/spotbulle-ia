@@ -210,10 +210,30 @@ export const auth = {
 
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/auth/me');
+      const response = await api.get("/auth/me");
       return response.data;
     } catch (error) {
-      console.error('❌ Erreur récupération utilisateur:', error.message);
+      console.error("❌ Erreur récupération utilisateur:", error.message);
+      throw error;
+    }
+  },
+
+  getUserStats: async (userId) => {
+    try {
+      const response = await api.get(`/users/${userId}/stats`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur récupération statistiques utilisateur ${userId}:`, error.message);
+      throw error;
+    }
+  },
+
+  getUserVideos: async (userId, params = {}) => {
+    try {
+      const response = await api.get(`/users/${userId}/videos`, { params });
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur récupération vidéos utilisateur ${userId}:`, error.message);
       throw error;
     }
   }
