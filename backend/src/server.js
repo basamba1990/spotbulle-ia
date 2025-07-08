@@ -85,6 +85,7 @@ const limiter = rateLimit({
   }
 });
 
+app.set('trust proxy', 1); // Activer trust proxy pour les en-têtes X-Forwarded-For
 app.use(limiter);
 
 // Middleware pour parser les données avec limites adaptées
