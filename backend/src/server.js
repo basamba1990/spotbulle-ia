@@ -142,7 +142,7 @@ app.get('/', (req, res) => {
 });
 
 // Initialisation de la base de données
-const { sequelize, connectDB } = require('./config/db-production.js');
+const { sequelize, connectDB } = require('./config');
 
 // Connexion à la base de données
 connectDB().catch(err => {
