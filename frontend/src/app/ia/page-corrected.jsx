@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import RecommandationsProjets from '../../components/ia/RecommandationsProjets';
 import AnalyseIAResults from '../../components/ia/AnalyseIAResults';
-import { iaAPI, userAPI, apiUtils } from '../../lib/api-corrected';
+import { iaAPI, authAPI as userAPI, apiUtils } from '../../lib/api';
 
 export default function IAPage() {
   const { user } = useAuth();
