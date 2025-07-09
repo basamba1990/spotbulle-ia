@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { videoAPI, apiUtils } from '../../lib/api-corrected';
+import { videoAPI, apiUtils } from '../../lib/api';
 
 export default function VideoUploader({ onUploadSuccess, onUploadError }) {
   const [isUploading, setIsUploading] = useState(false);
