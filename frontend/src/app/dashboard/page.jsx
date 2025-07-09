@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
-import { videoAPI, eventAPI, userAPI, apiUtils } from '../../lib/api';
+import { videoAPI, eventAPI, authAPI, apiUtils } from '../../lib/api';
 import EventCard from '../../components/events/EventCard';
 
 export default function DashboardPage() {
@@ -56,7 +56,7 @@ export default function DashboardPage() {
 
       try {
         // Essayer de charger les statistiques de l'utilisateur
-        const statsResponse = await userAPI.getUserStats(user.id);
+        const statsResponse = await authAPI.getUserStats(user.id);
         setStats(statsResponse.data.data.stats);
       } catch (statsError) {
         console.warn('Impossible de charger les statistiques, utilisation des données par défaut');
@@ -65,7 +65,7 @@ export default function DashboardPage() {
 
       try {
         // Essayer de charger les vidéos récentes de l'utilisateur
-        const videosResponse = await userAPI.getUserVideos(user.id, {
+        const videosResponse = await authAPI.getUserVideos(user.id, {
           limit: 6,
           sort: 'recent'
         });
