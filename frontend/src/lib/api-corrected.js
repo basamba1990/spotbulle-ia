@@ -1,233 +1,532 @@
 import axios from 'axios';
 
-// Configuration de l'API avec fallback pour le développement local
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// Configuration de l'API pour la production avec fallback
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.onrender.com';
+const MAX_FILE_SIZE = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 262144000; // 250MB
+const ENVIRONMENT = process.env.NEXT_PUBLIC_ENV || 'production';
 
+console.log(`🌍 Configuration API - Environnement: ${ENVIRONMENT}`);
+console.log(`🔗 URL de base: ${API_BASE_URL}`);
+console.log(`📁 Taille max fichier: ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`);
+
+// Configuration axios avec intercepteurs pour la production
 const api = axios.create({
-  baseURL: API_URL,
-  timeout: 30000,
+  baseURL: API_BASE_URL,
+  timeout: 120000, // 2 minutes pour les uploads
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
-  },
-  withCredentials: true,
+    'X-Client-Version': '1.1.1',
+    'X-Environment': ENVIRONMENT
+  }
 });
 
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
+// Intercepteur de requête
 api.interceptors.request.use(
   (config) => {
+    // Ajouter le token d'authentification si disponible
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Log des requêtes en développement
+    if (ENVIRONMENT === 'development') {
+      console.log(`🚀 Requête: ${config.method?.toUpperCase()} ${config.url}`);
+    }
+
     return config;
   },
   (error) => {
+    console.error('❌ Erreur de configuration de requête:', error);
     return Promise.reject(error);
   }
 );
 
+// Intercepteur de réponse avec gestion d'erreurs robuste et fallback
 api.interceptors.response.use(
   (response) => {
+    // Log des réponses en développement
+    if (ENVIRONMENT === 'development') {
+      console.log(`✅ Réponse: ${response.status} ${response.config.url}`);
+    }
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      if (isRefreshing) {
-        return new Promise(function(resolve, reject) {
-          failedQueue.push({ resolve, reject });
-        })
-        .then(token => {
-          originalRequest.headers['Authorization'] = 'Bearer ' + token;
-          return api(originalRequest);
-        })
-        .catch(err => {
-          return Promise.reject(err);
-        });
+    // Gestion des erreurs de réseau avec fallback
+    if (!error.response) {
+      console.warn('⚠️ Erreur de réseau:', error.message);
+      
+      // Retourner des données par défaut pour certaines routes
+      if (originalRequest.url?.includes('/videos')) {
+        return {
+          data: {
+            videos: [],
+            message: 'Mode hors ligne - Aucune vidéo disponible'
+          }
+        };
       }
-
-      isRefreshing = true;
-
-      return new Promise(async (resolve, reject) => {
-        try {
-          const refreshToken = localStorage.getItem('refreshToken');
-          
-          if (!refreshToken) {
-            throw new Error('Refresh token non trouvé. Déconnexion.');
+      
+      if (originalRequest.url?.includes('/events')) {
+        return {
+          data: {
+            events: [],
+            message: 'Mode hors ligne - Aucun événement disponible'
           }
-
-          const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken }, {
-            withCredentials: true
-          });
-          
-          const newToken = refreshResponse.data.data.token;
-          const newRefreshToken = refreshResponse.data.data.refreshToken;
-          
-          localStorage.setItem('authToken', newToken);
-          if (newRefreshToken) {
-            localStorage.setItem('refreshToken', newRefreshToken);
-          }
-
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-          processQueue(null, newToken);
-          resolve(api(originalRequest));
-        } catch (refreshError) {
-          processQueue(refreshError, null);
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('refreshToken');
-          // Rediriger vers la page de connexion
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
-          reject(refreshError);
-        } finally {
-          isRefreshing = false;
-        }
-      });
+        };
+      }
+      
+      throw new Error('Connexion au serveur impossible. Vérifiez votre connexion internet.');
     }
 
-    return Promise.reject(error);
+    // Gestion des erreurs d'authentification
+    if (error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      // Supprimer le token invalide
+      localStorage.removeItem('authToken');
+      
+      // Rediriger vers la page de connexion seulement si on est dans le navigateur
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
+
+    // Gestion des erreurs de serveur avec fallback gracieux
+    if (error.response.status >= 500) {
+      console.error('❌ Erreur serveur:', error.response.status, error.response.data);
+      
+      // Retourner des données par défaut pour les requêtes GET
+      if (originalRequest.method?.toLowerCase() === 'get') {
+        if (originalRequest.url?.includes('/videos')) {
+          return {
+            data: {
+              videos: [],
+              message: 'Erreur serveur - Impossible de charger les vidéos'
+            }
+          };
+        }
+        
+        if (originalRequest.url?.includes('/events')) {
+          return {
+            data: {
+              events: [],
+              message: 'Erreur serveur - Impossible de charger les événements'
+            }
+          };
+        }
+      }
+      
+      throw new Error('Erreur du serveur. Veuillez réessayer plus tard.');
+    }
+
+    // Gestion des erreurs de validation
+    if (error.response.status === 400) {
+      const errorMessage = error.response.data?.message || 'Données invalides';
+      throw new Error(errorMessage);
+    }
+
+    // Gestion des erreurs de permissions
+    if (error.response.status === 403) {
+      throw new Error('Accès non autorisé à cette ressource.');
+    }
+
+    // Gestion des erreurs de ressource non trouvée
+    if (error.response.status === 404) {
+      throw new Error('Ressource non trouvée.');
+    }
+
+    // Gestion des erreurs de limite de taux
+    if (error.response.status === 429) {
+      throw new Error('Trop de requêtes. Veuillez patienter avant de réessayer.');
+    }
+
+    // Erreur générique
+    const errorMessage = error.response.data?.message || error.message || 'Une erreur est survenue';
+    throw new Error(errorMessage);
   }
 );
 
-// API d'authentification
-export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
-  register: (userData) => api.post('/auth/register', userData),
-  logout: () => api.post('/auth/logout'),
-  me: () => api.get('/auth/me'),
-  refreshToken: (refreshToken) => api.post('/auth/refresh-token', { refreshToken }),
+// Fonction utilitaire pour valider les fichiers
+const validateFile = (file) => {
+  const errors = [];
+
+  // Vérifier la taille
+  if (file.size > MAX_FILE_SIZE) {
+    errors.push(`Le fichier est trop volumineux (max: ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB)`);
+  }
+
+  // Vérifier le type
+  const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+  if (!allowedTypes.includes(file.type)) {
+    errors.push('Format de fichier non supporté. Utilisez MP4, MOV, AVI ou WebM.');
+  }
+
+  // Vérifier le nom du fichier
+  if (file.name.length > 255) {
+    errors.push('Le nom du fichier est trop long (max: 255 caractères)');
+  }
+
+  // Vérifier les caractères spéciaux
+  const invalidChars = /[<>:"/\\|?*]/;
+  if (invalidChars.test(file.name)) {
+    errors.push('Le nom du fichier contient des caractères non autorisés');
+  }
+
+  return errors;
 };
 
-// API vidéo avec gestion d'erreurs améliorée
-export const videoAPI = {
-  uploadVideo: (formData, onUploadProgress) => {
-    return api.post('/videos/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: onUploadProgress,
-      timeout: 300000, // 5 minutes pour l'upload
+// Fonction utilitaire pour gérer les erreurs
+const handleError = (error) => {
+  if (error.response) {
+    return {
+      status: error.response.status,
+      message: error.response.data?.message || error.message,
+      data: error.response.data
+    };
+  } else if (error.request) {
+    return {
+      status: 0,
+      message: 'Erreur de réseau - Impossible de joindre le serveur',
+      data: null
+    };
+  } else {
+    return {
+      status: -1,
+      message: error.message || 'Une erreur inconnue est survenue',
+      data: null
+    };
+  }
+};
+
+// Fonction utilitaire pour formater les dates
+const formatDate = (dateString) => {
+  if (!dateString) return 'Date inconnue';
+  
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
-  },
-  getVideos: (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
-    return api.get(`/videos${queryParams ? `?${queryParams}` : ''}`);
-  },
-  getVideoById: (id) => api.get(`/videos/${id}`),
-  deleteVideo: (id) => api.delete(`/videos/${id}`),
-  updateVideo: (id, data) => api.put(`/videos/${id}`, data),
+  } catch (error) {
+    return 'Date invalide';
+  }
 };
 
-// API utilisateur
-export const userAPI = {
-  getUserStats: (userId) => api.get(`/users/${userId}/stats`),
-  getUserVideos: (userId, params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
-    return api.get(`/users/${userId}/videos${queryParams ? `?${queryParams}` : ''}`);
-  },
-  updateProfile: (userId, data) => api.put(`/users/${userId}`, data),
+// API Functions
+
+/**
+ * Vérifier la santé du serveur
+ */
+export const checkHealth = async () => {
+  try {
+    const response = await api.get('/health');
+    return response.data;
+  } catch (error) {
+    console.warn('⚠️ Health check échoué:', error.message);
+    return { status: 'offline', message: 'Serveur indisponible' };
+  }
 };
 
-// API événements
-export const eventAPI = {
-  getEvents: (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
-    return api.get(`/events${queryParams ? `?${queryParams}` : ''}`);
-  },
-  getEventById: (id) => api.get(`/events/${id}`),
-  createEvent: (data) => api.post('/events', data),
-  updateEvent: (id, data) => api.put(`/events/${id}`, data),
-  deleteEvent: (id) => api.delete(`/events/${id}`),
-};
-
-// API IA avec gestion d'erreurs améliorée
-export const iaAPI = {
-  lancerAnalyse: (videoId) => api.post(`/ia/analyser/${videoId}`),
-  obtenirResultats: (videoId) => api.get(`/ia/resultats/${videoId}`),
-  rechercherSimilaires: (videoId, limit = 5) => api.get(`/ia/similaires/${videoId}?limit=${limit}`),
-  obtenirStatistiques: () => api.get('/ia/statistiques'),
-  obtenirRecommandations: (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
-    return api.get(`/ia/recommandations${queryParams ? `?${queryParams}` : ''}`);
-  },
-};
-
-// Utilitaires API
-export const apiUtils = {
-  // Fonction pour les requêtes nécessitant une authentification
-  authenticatedRequest: (method, url, data = {}) => {
-    return api[method](url, data);
-  },
-  
-  // Fonction pour les requêtes optionnellement authentifiées
-  optionalAuthRequest: (method, url, data = {}) => {
-    return api[method](url, data);
-  },
-  
-  // Validation des fichiers vidéo améliorée
-  validateVideoFile: (file) => {
-    const allowedTypes = [
-      'video/mp4',
-      'video/avi', 
-      'video/mov',
-      'video/quicktime',
-      'video/x-msvideo',
-      'video/x-ms-wmv',
-      'video/webm',
-      'video/3gpp',
-      'video/3gpp2'
-    ];
-    
-    const allowedExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.webm', '.3gp', '.3g2'];
-    
-    const maxSize = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 104857600; // 100MB
-    
-    if (!file) {
-      throw new Error('Aucun fichier sélectionné');
-    }
-    
-    // Vérifier la taille
-    if (file.size > maxSize) {
-      throw new Error(`Le fichier est trop volumineux. Taille maximum: ${apiUtils.formatFileSize(maxSize)}`);
-    }
-    
-    // Vérifier le type MIME
-    if (!allowedTypes.includes(file.type)) {
-      // Vérifier l'extension si le type MIME n'est pas reconnu
-      const fileName = file.name.toLowerCase();
-      const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+/**
+ * Authentification
+ */
+export const auth = {
+  login: async (credentials) => {
+    try {
+      const response = await api.post('/auth/login', credentials);
       
-      if (!hasValidExtension) {
-        throw new Error('Type de fichier non autorisé. Formats acceptés : MP4, MOV, QuickTime, AVI, WMV, WebM, 3GP, 3G2');
+      // Sauvegarder le token
+      if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
       }
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur de connexion:', error.message);
+      throw error;
     }
-    
-    // Vérifications supplémentaires
-    if (file.name.length > 255) {
-      throw new Error('Le nom du fichier est trop long (maximum 255 caractères)');
-    }
-    
-    return true;
   },
-  
-  // Formater la taille des fichiers
+
+  register: async (userData) => {
+    try {
+      const response = await api.post('/auth/register', userData);
+      
+      // Sauvegarder le token si fourni
+      if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur d\'inscription:', error.message);
+      throw error;
+    }
+  },
+
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.warn('⚠️ Erreur lors de la déconnexion:', error.message);
+    } finally {
+      // Supprimer le token local
+      localStorage.removeItem('authToken');
+    }
+  },
+
+  getCurrentUser: async () => {
+    try {
+      const response = await api.get("/auth/me");
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur récupération utilisateur:", error.message);
+      throw error;
+    }
+  },
+
+  getUserStats: async (userId) => {
+    try {
+      const response = await api.get(`/users/${userId}/stats`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur récupération statistiques utilisateur ${userId}:`, error.message);
+      // Retourner des stats par défaut
+      return {
+        data: {
+          videos_count: 0,
+          total_views: 0,
+          events_count: 0,
+          followers_count: 0
+        }
+      };
+    }
+  },
+
+  getUserVideos: async (userId, params = {}) => {
+    try {
+      const response = await api.get(`/users/${userId}/videos`, { params });
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur récupération vidéos utilisateur ${userId}:`, error.message);
+      return { data: { videos: [] } };
+    }
+  }
+};
+
+/**
+ * Gestion des vidéos avec fallback
+ */
+export const videos = {
+  getAll: async (params = {}) => {
+    try {
+      const response = await api.get('/videos', { params });
+      return response.data;
+    } catch (error) {
+      console.warn('⚠️ Impossible de charger les vidéos:', error.message);
+      return { data: { videos: [] } };
+    }
+  },
+
+  getVideos: async (params = {}) => {
+    return videos.getAll(params);
+  },
+
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/videos/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur récupération vidéo ${id}:`, error.message);
+      throw error;
+    }
+  },
+
+  upload: async (file, metadata = {}, onProgress = null) => {
+    try {
+      // Validation du fichier
+      const validationErrors = validateFile(file);
+      if (validationErrors.length > 0) {
+        throw new Error(validationErrors.join(', '));
+      }
+
+      console.log(`📤 Upload de ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+
+      const formData = new FormData();
+      formData.append('video', file);
+      
+      // Ajouter les métadonnées
+      Object.keys(metadata).forEach(key => {
+        formData.append(key, metadata[key]);
+      });
+
+      const response = await api.post('/videos/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 300000, // 5 minutes pour les gros fichiers
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(percentCompleted);
+          }
+        }
+      });
+
+      console.log('✅ Upload terminé avec succès');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur upload vidéo:', error.message);
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/videos/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur suppression vidéo ${id}:`, error.message);
+      throw error;
+    }
+  }
+};
+
+/**
+ * Analyse IA avec gestion d'erreur améliorée
+ */
+export const ia = {
+  analyzeVideo: async (videoId) => {
+    try {
+      console.log(`🤖 Lancement de l'analyse IA pour la vidéo ${videoId}`);
+      const response = await api.post(`/ia/analyser/${videoId}`, {}, {
+        timeout: 180000 // 3 minutes pour l'analyse IA
+      });
+      
+      console.log('✅ Analyse IA terminée');
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur analyse IA vidéo ${videoId}:`, error.message);
+      throw error;
+    }
+  },
+
+  getAnalysis: async (videoId) => {
+    try {
+      const response = await api.get(`/ia/analyse/${videoId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur récupération analyse ${videoId}:`, error.message);
+      return { data: { analysis: null, message: 'Analyse non disponible' } };
+    }
+  },
+
+  getStatistics: async () => {
+    try {
+      const response = await api.get('/ia/statistiques');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur récupération statistiques IA:', error.message);
+      return { 
+        data: { 
+          total_analyses: 0, 
+          success_rate: 0, 
+          average_processing_time: 0 
+        } 
+      };
+    }
+  },
+
+  searchSimilar: async (videoId, threshold = 0.6) => {
+    try {
+      const response = await api.get(`/ia/similaires/${videoId}`, {
+        params: { threshold }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur recherche similaires ${videoId}:`, error.message);
+      return { data: { similar_videos: [] } };
+    }
+  }
+};
+
+/**
+ * Gestion des événements avec fallback
+ */
+export const events = {
+  getAll: async (params = {}) => {
+    try {
+      const response = await api.get('/events', { params });
+      return response.data;
+    } catch (error) {
+      console.warn('⚠️ Impossible de charger les événements:', error.message);
+      return { data: { events: [] } };
+    }
+  },
+
+  getEvents: async (params = {}) => {
+    return events.getAll(params);
+  },
+
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/events/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur récupération événement ${id}:`, error.message);
+      throw error;
+    }
+  },
+
+  create: async (eventData) => {
+    try {
+      const response = await api.post('/events', eventData);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erreur création événement:', error.message);
+      throw error;
+    }
+  },
+
+  update: async (id, eventData) => {
+    try {
+      const response = await api.put(`/events/${id}`, eventData);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur mise à jour événement ${id}:`, error.message);
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/events/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Erreur suppression événement ${id}:`, error.message);
+      throw error;
+    }
+  }
+};
+
+// Exports pour compatibilité avec l'ancien code
+export const videoAPI = videos;
+export const eventAPI = events;
+export const authAPI = auth;
+export const iaAPI = ia;
+
+// Utilitaires API améliorés
+export const apiUtils = {
+  validateFile,
+  checkHealth,
+  handleError,
+  formatDate,
   formatFileSize: (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -235,128 +534,40 @@ export const apiUtils = {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   },
-  
-  // Gestion des erreurs améliorée
-  handleError: (error) => {
-    console.error('Erreur API:', error);
-    
-    if (error.response) {
-      // Erreur de réponse du serveur
-      const status = error.response.status;
-      const data = error.response.data;
-      
-      let message = data?.message || 'Erreur du serveur';
-      
-      switch (status) {
-        case 400:
-          message = data?.message || 'Données invalides';
-          break;
-        case 401:
-          message = 'Non autorisé. Veuillez vous reconnecter.';
-          break;
-        case 403:
-          message = 'Accès interdit';
-          break;
-        case 404:
-          message = 'Ressource non trouvée';
-          break;
-        case 409:
-          message = data?.message || 'Conflit de données';
-          break;
-        case 413:
-          message = 'Fichier trop volumineux';
-          break;
-        case 429:
-          message = 'Trop de requêtes. Veuillez patienter.';
-          break;
-        case 500:
-          message = 'Erreur interne du serveur';
-          break;
-        case 503:
-          message = 'Service temporairement indisponible';
-          break;
-        default:
-          message = `Erreur ${status}: ${message}`;
-      }
-      
-      return {
-        message,
-        status,
-        data,
-        errors: data?.errors || []
-      };
-    } else if (error.request) {
-      // Erreur de réseau
-      return {
-        message: 'Impossible de contacter le serveur. Vérifiez votre connexion internet.',
-        status: 0,
-        data: null,
-        errors: []
-      };
-    } else {
-      // Autre erreur
-      return {
-        message: error.message || 'Une erreur inattendue est survenue',
-        status: 0,
-        data: null,
-        errors: []
-      };
-    }
+  isValidVideoType: (file) => {
+    const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+    return allowedTypes.includes(file.type);
   },
+  getApiUrl: () => API_BASE_URL,
+  getMaxFileSize: () => MAX_FILE_SIZE,
+  getEnvironment: () => ENVIRONMENT,
   
-  // Formater les dates
-  formatDate: (dateString) => {
-    if (!dateString) return '';
-    
+  // Nouvelle fonction pour vérifier la connectivité
+  isOnline: async () => {
     try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffTime = Math.abs(now - date);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 1) {
-        return 'hier';
-      } else if (diffDays < 7) {
-        return `il y a ${diffDays} jours`;
-      } else if (diffDays < 30) {
-        const weeks = Math.floor(diffDays / 7);
-        return `il y a ${weeks} semaine${weeks > 1 ? 's' : ''}`;
-      } else {
-        return date.toLocaleDateString('fr-FR', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        });
-      }
-    } catch (error) {
-      return dateString;
-    }
-  },
-  
-  // Vérifier la connectivité
-  checkConnectivity: async () => {
-    try {
-      const response = await api.get('/health', { timeout: 5000 });
-      return response.status === 200;
+      const health = await checkHealth();
+      return health.status !== 'offline';
     } catch (error) {
       return false;
-    }
-  },
-  
-  // Retry automatique pour les requêtes échouées
-  retryRequest: async (requestFn, maxRetries = 3, delay = 1000) => {
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        return await requestFn();
-      } catch (error) {
-        if (i === maxRetries - 1) throw error;
-        
-        // Attendre avant de réessayer
-        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
-      }
     }
   }
 };
 
-export default api;
+// Export de l'instance axios pour les cas d'usage avancés
+export { api };
+
+// Export par défaut
+export default {
+  checkHealth,
+  auth,
+  videos,
+  ia,
+  events,
+  api,
+  videoAPI: videos,
+  eventAPI: events,
+  authAPI: auth,
+  iaAPI: ia,
+  apiUtils
+};
 
