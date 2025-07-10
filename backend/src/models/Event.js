@@ -125,3 +125,4 @@ const Event = sequelize.define('Event', {
 
 module.exports = Event;
 
+
