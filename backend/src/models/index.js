@@ -23,3 +23,15 @@ module.exports = {
   sequelize, // Exporter sequelize pour la synchronisation si nécessaire
 };
 
+
+
+User.hasMany(Event, {
+  foreignKey: 'organisateur_id',
+  as: 'evenementsOrganises'
+});
+Event.belongsTo(User, {
+  foreignKey: 'organisateur_id',
+  as: 'organisateur'
+});
+
+
