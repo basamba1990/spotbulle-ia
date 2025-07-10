@@ -104,3 +104,12 @@ User.prototype.getPublicData = function() {
 module.exports = User;
 
 
+
+
+User.associate = (models) => {
+  User.hasMany(models.Event, {
+    foreignKey: 'organisateur_id',
+    as: 'evenementsOrganises'
+  });
+};
+
