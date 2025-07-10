@@ -329,3 +329,14 @@ server.on('error', (error) => {
 
 module.exports = app;
 
+
+
+// Initialisation des associations Sequelize
+const models = require("./models");
+Object.keys(models).forEach(modelName => {
+  if (models[modelName].associate) {
+    models[modelName].associate(models);
+  }
+});
+
+
