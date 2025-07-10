@@ -95,12 +95,13 @@ User.prototype.verifyPassword = async function(password) {
   return await bcrypt.compare(password, this.password_hash);
 };
 
-// Méthode pour obtenir les données publiques de l\'utilisateur
+// Méthode pour obtenir les données publiques de l'utilisateur
 User.prototype.getPublicData = function() {
   const { password_hash, ...publicData } = this.toJSON();
   return publicData;
 };
 
+// Définition des associations
 User.associate = (models) => {
   User.hasMany(models.Event, {
     foreignKey: 'organisateur_id',
@@ -109,11 +110,3 @@ User.associate = (models) => {
 };
 
 module.exports = User;
-
-
-
-
-
-
-
-
