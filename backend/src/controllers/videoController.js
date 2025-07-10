@@ -159,11 +159,11 @@ const getVideos = async (req, res) => {
       ];
     }
 
-    let order = [["createdAt", "DESC"]];
+    let order = [["date_upload", "DESC"]];
     if (sort === "popular") {
       order = [["likes", "DESC"]];
     } else if (sort === "oldest") {
-      order = [["createdAt", "ASC"]];
+      order = [["date_upload", "ASC"]];
     }
 
     const { count, rows: videos } = await Video.findAndCountAll({
