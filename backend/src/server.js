@@ -1,15 +1,15 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const compression = require('compression');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-const cookieParser = require('cookie-parser');
-const path = require('path');
-const fs = require('fs');
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
+const path = require("path");
+const fs = require("fs");
 
 // Configuration de l'environnement
-require('dotenv').config();
+require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -22,9 +22,9 @@ const corsOptions = {
     
     // Liste des origines autorisées en production
     const allowedOrigins = [
-      'https://spotbulle-ia.vercel.app',
+      "https://spotbulle-ia.vercel.app",
       process.env.FRONTEND_URL,
-      'http://localhost:3000', // Pour les tests locaux
+      "http://localhost:3000", // Pour les tests locaux
     ].filter(Boolean);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -32,17 +32,17 @@ const corsOptions = {
     } else {
       console.warn(`CORS: Origine non autorisée: ${origin}`);
       // En production, être plus strict
-      if (process.env.NODE_ENV === 'production') {
-        callback(new Error('Non autorisé par CORS'));
+      if (process.env.NODE_ENV === "production") {
+        callback(new Error("Non autorisé par CORS"));
       } else {
         callback(null, true);
       }
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['X-Total-Count']
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["X-Total-Count"],
 };
 
 // Middlewares de sécurité renforcés pour la production
@@ -63,10 +63,10 @@ app.use(compression());
 app.use(cors(corsOptions));
 
 // Middleware de logging adapté à l'environnement
-if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined'));
+if (process.env.NODE_ENV === "production") {
+  app.use(morgan("combined"));
 } else {
-  app.use(morgan('dev'));
+  app.use(morgan("dev"));
 }
 
 // Rate limiting renforcé pour la production
@@ -75,39 +75,39 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: {
     success: false,
-    message: 'Trop de requêtes, veuillez réessayer plus tard.'
+    message: "Trop de requêtes, veuillez réessayer plus tard."
   },
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
     // Exclure les routes de santé du rate limiting
-    return req.path === '/health' || req.path === '/';
+    return req.path === "/health" || req.path === "/";
   }
 });
 
-app.set('trust proxy', 1); // Activer trust proxy pour les en-têtes X-Forwarded-For
+app.set("trust proxy", 1); // Activer trust proxy pour les en-têtes X-Forwarded-For
 app.use(limiter);
 
 // Middleware pour parser les données avec limites adaptées
-const maxFileSize = process.env.MAX_FILE_SIZE || '250mb';
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+const maxFileSize = process.env.MAX_FILE_SIZE || "250mb";
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
 // Créer le dossier uploads s'il n'existe pas
-const uploadsDir = process.env.UPLOAD_DIR || './uploads';
+const uploadsDir = process.env.UPLOAD_DIR || "./uploads";
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log(`Dossier uploads créé: ${uploadsDir}`);
 }
 
 // Servir les fichiers statiques avec cache
-app.use('/uploads', express.static(uploadsDir, {
-  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0
+app.use("/uploads", express.static(uploadsDir, {
+  maxAge: process.env.NODE_ENV === "production" ? "1d" : 0
 }));
 
 // Middleware de logging des requêtes (conditionnel)
-if (process.env.ENABLE_REQUEST_LOGGING === 'true') {
+if (process.env.ENABLE_REQUEST_LOGGING === "true") {
   app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - IP: ${req.ip}`);
     next();
@@ -115,15 +115,15 @@ if (process.env.ENABLE_REQUEST_LOGGING === 'true') {
 }
 
 // Route de santé
-app.get('/health', (req, res) => {
+app.get("/health", (req, res) => {
   res.json({
     success: true,
-    message: 'Serveur SpotBulle IA opérationnel',
+    message: "Serveur SpotBulle IA opérationnel",
     timestamp: new Date().toISOString(),
-    version: '1.1.1',
-    environment: process.env.NODE_ENV || 'development',
+    version: "1.1.1",
+    environment: process.env.NODE_ENV || "development",
     features: {
-      ai: process.env.ENABLE_AI_FEATURES === 'true',
+      ai: process.env.ENABLE_AI_FEATURES === "true",
       supabase: !!process.env.SUPABASE_URL,
       openai: !!process.env.OPENAI_API_KEY
     }
@@ -131,64 +131,76 @@ app.get('/health', (req, res) => {
 });
 
 // Route racine
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: 'API SpotBulle IA',
-    version: '1.1.1',
-    documentation: '/api/docs',
-    health: '/health',
+    message: "API SpotBulle IA",
+    version: "1.1.1",
+    documentation: "/api/docs",
+    health: "/health",
     environment: process.env.NODE_ENV
   });
 });
 
 // Initialisation de la base de données
-const { sequelize, connectDB } = require('./config');
+const { sequelize, connectDB } = require("./config");
 
 // Connexion à la base de données
-connectDB().catch(err => {
-  console.error('Erreur lors de l\'initialisation de la base de données:', err);
-  if (process.env.NODE_ENV === 'production') {
+connectDB().then(() => {
+  console.log("✅ Connexion à la base de données établie avec succès");
+  console.log("✅ Base de données prête pour la production");
+
+  // Initialisation des associations Sequelize APRÈS la connexion à la DB
+  const models = require("./models");
+  Object.keys(models).forEach(modelName => {
+    if (models[modelName].associate) {
+      models[modelName].associate(models);
+    }
+  });
+
+}).catch(err => {
+  console.error("Erreur lors de l'initialisation de la base de données:", err);
+  if (process.env.NODE_ENV === "production") {
     process.exit(1);
   }
 });
 
 // Import des routes avec gestion d'erreurs
 try {
-  const authRoutes = require('./routes/authRoutes');
-  const userRoutes = require('./routes/userRoutes');
-  const videoRoutes = require('./routes/videoRoutes');
-  const eventRoutes = require('./routes/eventRoutes');
-  const analyseIARoutes = require('./routes/analyseIARoutes');
+  const authRoutes = require("./routes/authRoutes");
+  const userRoutes = require("./routes/userRoutes");
+  const videoRoutes = require("./routes/videoRoutes");
+  const eventRoutes = require("./routes/eventRoutes");
+  const analyseIARoutes = require("./routes/analyseIARoutes");
 
   // Configuration des routes avec préfixe /api
-  app.use('/api/auth', authRoutes);
-  app.use('/api/users', userRoutes);
-  app.use('/api/videos', videoRoutes);
-  app.use('/api/events', eventRoutes);
-  app.use('/api/ia', analyseIARoutes);
+  app.use("/api/auth", authRoutes);
+  app.use("/api/users", userRoutes);
+  app.use("/api/videos", videoRoutes);
+  app.use("/api/events", eventRoutes);
+  app.use("/api/ia", analyseIARoutes);
 
   // Routes sans préfixe pour compatibilité
-  app.use('/auth', authRoutes);
-  app.use('/users', userRoutes);
-  app.use('/videos', videoRoutes);
-  app.use('/events', eventRoutes);
-  app.use('/ia', analyseIARoutes);
+  app.use("/auth", authRoutes);
+  app.use("/users", userRoutes);
+  app.use("/videos", videoRoutes);
+  app.use("/events", eventRoutes);
+  app.use("/ia", analyseIARoutes);
   
-  console.log('✅ Routes chargées avec succès');
+  console.log("✅ Routes chargées avec succès");
 } catch (error) {
-  console.error('❌ Erreur lors du chargement des routes:', error.message);
+  console.error("❌ Erreur lors du chargement des routes:", error.message);
   
   // Routes de fallback pour les tests
-  app.get('/api/videos', (req, res) => {
+  app.get("/api/videos", (req, res) => {
     res.json({
       success: true,
-      message: 'Route de test - vidéos',
+      message: "Route de test - vidéos",
       data: { videos: [] }
     });
   });
   
-  app.get('/api/ia/statistiques', (req, res) => {
+  app.get("/api/ia/statistiques", (req, res) => {
     res.json({
       success: true,
       data: {
@@ -205,49 +217,49 @@ try {
 }
 
 // Middleware de gestion des erreurs 404
-app.use('*', (req, res) => {
+app.use("*", (req, res) => {
   res.status(404).json({
     success: false,
     message: `Route non trouvée: ${req.method} ${req.originalUrl}`,
     availableRoutes: [
-      'GET /',
-      'GET /health',
-      'POST /auth/login',
-      'POST /auth/register',
-      'GET /videos',
-      'POST /videos/upload',
-      'GET /events',
-      'POST /ia/analyser/:videoId'
+      "GET /",
+      "GET /health",
+      "POST /auth/login",
+      "POST /auth/register",
+      "GET /videos",
+      "POST /videos/upload",
+      "GET /events",
+      "POST /ia/analyser/:videoId"
     ]
   });
 });
 
 // Middleware de gestion des erreurs globales
 app.use((error, req, res, next) => {
-  console.error('Erreur serveur:', error);
+  console.error("Erreur serveur:", error);
   
   // Erreur de validation Multer
-  if (error.code === 'LIMIT_FILE_SIZE') {
+  if (error.code === "LIMIT_FILE_SIZE") {
     return res.status(413).json({
       success: false,
-      message: 'Fichier trop volumineux',
-      maxSize: process.env.MAX_FILE_SIZE || '250MB'
+      message: "Fichier trop volumineux",
+      maxSize: process.env.MAX_FILE_SIZE || "250MB"
     });
   }
   
   // Erreur de validation JSON
-  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+  if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
     return res.status(400).json({
       success: false,
-      message: 'Format JSON invalide'
+      message: "Format JSON invalide"
     });
   }
   
   // Erreur de base de données
-  if (error.name === 'SequelizeValidationError') {
+  if (error.name === "SequelizeValidationError") {
     return res.status(400).json({
       success: false,
-      message: 'Erreur de validation',
+      message: "Erreur de validation",
       errors: error.errors.map(err => ({
         field: err.path,
         message: err.message
@@ -256,20 +268,20 @@ app.use((error, req, res, next) => {
   }
   
   // Erreur CORS
-  if (error.message === 'Non autorisé par CORS') {
+  if (error.message === "Non autorisé par CORS") {
     return res.status(403).json({
       success: false,
-      message: 'Origine non autorisée'
+      message: "Origine non autorisée"
     });
   }
   
   // Erreur générique
   res.status(error.status || 500).json({
     success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Erreur interne du serveur'
+    message: process.env.NODE_ENV === "production" 
+      ? "Erreur interne du serveur"
       : error.message,
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    ...(process.env.NODE_ENV === "development" && { stack: error.stack })
   });
 });
 
@@ -277,10 +289,10 @@ app.use((error, req, res, next) => {
 const gracefulShutdown = (signal) => {
   console.log(`${signal} reçu, arrêt gracieux du serveur...`);
   server.close(() => {
-    console.log('Serveur fermé.');
+    console.log("Serveur fermé.");
     if (sequelize) {
       sequelize.close().then(() => {
-        console.log('Connexion base de données fermée.');
+        console.log("Connexion base de données fermée.");
         process.exit(0);
       });
     } else {
@@ -289,54 +301,36 @@ const gracefulShutdown = (signal) => {
   });
 };
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Gestion des erreurs non capturées
-process.on('uncaughtException', (error) => {
-  console.error('Erreur non capturée:', error);
+process.on("uncaughtException", (error) => {
+  console.error("Erreur non capturée:", error);
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Promesse rejetée non gérée:', reason);
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Promesse rejetée non gérée:", reason);
   process.exit(1);
 });
 
 // Démarrage du serveur
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`
-🚀 Serveur SpotBulle IA démarré avec succès!
-📍 URL: http://0.0.0.0:${PORT}
-🌍 Environnement: ${process.env.NODE_ENV || 'development'}
-📊 Health check: http://0.0.0.0:${PORT}/health
-📚 API: http://0.0.0.0:${PORT}/api
-🔒 CORS: ${process.env.FRONTEND_URL || 'localhost autorisé'}
-🤖 IA: ${process.env.ENABLE_AI_FEATURES === 'true' ? 'Activée' : 'Désactivée'}
-  `);
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`\n🚀 Serveur SpotBulle IA démarré avec succès!\n📍 URL: http://0.0.0.0:${PORT}\n🌍 Environnement: ${process.env.NODE_ENV || "development"}\n📊 Health check: http://0.0.0.0:${PORT}/health\n📚 API: http://0.0.0.0:${PORT}/api\n🔒 CORS: ${process.env.FRONTEND_URL || "localhost autorisé"}\n🤖 IA: ${process.env.ENABLE_AI_FEATURES === "true" ? "Activée" : "Désactivée"}\n  `);
 });
 
 // Gestion des erreurs de démarrage
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
     console.error(`❌ Le port ${PORT} est déjà utilisé.`);
     process.exit(1);
   } else {
-    console.error('❌ Erreur lors du démarrage du serveur:', error);
+    console.error("❌ Erreur lors du démarrage du serveur:", error);
     process.exit(1);
   }
 });
 
 module.exports = app;
-
-
-
-// Initialisation des associations Sequelize
-const models = require("./models");
-Object.keys(models).forEach(modelName => {
-  if (models[modelName].associate) {
-    models[modelName].associate(models);
-  }
-});
 
 
