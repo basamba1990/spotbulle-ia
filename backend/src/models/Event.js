@@ -1,7 +1,7 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config");
 
-const Event = sequelize.define('Event', {
+const Event = sequelize.define("Event", {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -28,7 +28,7 @@ const Event = sequelize.define('Event', {
     validate: {
       isAfterStart(value) {
         if (value && this.date_debut && value < this.date_debut) {
-          throw new Error('La date de fin doit être après la date de début');
+          throw new Error("La date de fin doit être après la date de début");
         }
       }
     }
@@ -41,30 +41,30 @@ const Event = sequelize.define('Event', {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'users',
-      key: 'id'
+      model: "users",
+      key: "id"
     }
   },
   thematique: {
     type: DataTypes.ENUM(
-      'sport',
-      'culture',
-      'education',
-      'famille',
-      'professionnel',
-      'loisirs',
-      'voyage',
-      'cuisine',
-      'technologie',
-      'sante',
-      'autre'
+      "sport",
+      "culture",
+      "education",
+      "famille",
+      "professionnel",
+      "loisirs",
+      "voyage",
+      "cuisine",
+      "technologie",
+      "sante",
+      "autre"
     ),
     allowNull: false,
-    defaultValue: 'autre'
+    defaultValue: "autre"
   },
   statut: {
-    type: DataTypes.ENUM('planifie', 'en_cours', 'termine', 'annule'),
-    defaultValue: 'planifie'
+    type: DataTypes.ENUM("planifie", "en_cours", "termine", "annule"),
+    defaultValue: "planifie"
   },
   image_url: {
     type: DataTypes.STRING,
@@ -92,7 +92,7 @@ const Event = sequelize.define('Event', {
   coordonnees: {
     type: DataTypes.JSONB,
     allowNull: true,
-    comment: 'Coordonnées GPS: {lat: number, lng: number}'
+    comment: "Coordonnées GPS: {lat: number, lng: number}"
   },
   parametres: {
     type: DataTypes.JSONB,
@@ -103,22 +103,22 @@ const Event = sequelize.define('Event', {
     }
   }
 }, {
-  tableName: 'evenements',
+  tableName: "evenements",
   timestamps: true,
-  createdAt: 'date_creation',
-  updatedAt: 'date_modification',
+  createdAt: "date_creation",
+  updatedAt: "date_modification",
   indexes: [
     {
-      fields: ['thematique']
+      fields: ["thematique"]
     },
     {
-      fields: ['date_debut']
+      fields: ["date_debut"]
     },
     {
-      fields: ['organisateur_id']
+      fields: ["organisateur_id"]
     },
     {
-      fields: ['statut']
+      fields: ["statut"]
     }
   ]
 });
