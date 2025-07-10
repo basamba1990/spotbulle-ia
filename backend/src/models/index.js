@@ -25,13 +25,3 @@ module.exports = {
 
 
 
-User.hasMany(Event, {
-  foreignKey: 'organisateur_id',
-  as: 'evenementsOrganises'
-});
-Event.belongsTo(User, {
-  foreignKey: 'organisateur_id',
-  as: 'organisateur'
-});
-
-

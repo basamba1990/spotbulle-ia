@@ -130,3 +130,13 @@ module.exports = Event;
 
 
 
+
+
+Event.associate = (models) => {
+  Event.belongsTo(models.User, {
+    foreignKey: 'organisateur_id',
+    as: 'organisateur'
+  });
+};
+
+
