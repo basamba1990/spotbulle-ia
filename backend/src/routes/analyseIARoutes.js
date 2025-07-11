@@ -116,7 +116,7 @@ router.post(
  */
 router.get(
   "/videos/:videoId/resultats",
-  authMiddleware,
+  optionalAuth,
   uuidValidation,
   analyseIAControllerInstance.obtenirResultatsAnalyse.bind(analyseIAControllerInstance)
 );
