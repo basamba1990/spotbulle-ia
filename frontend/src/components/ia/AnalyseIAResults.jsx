@@ -37,7 +37,7 @@ export default function AnalyseIAResults({ videoId, onClose }) {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const response = await fetch(`https://spotbulle-ia.onrender.com/api/ia/videos/${videoId}/resultats`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ia/videos/${videoId}/resultats`, {
         headers
       });
 
@@ -70,7 +70,7 @@ export default function AnalyseIAResults({ videoId, onClose }) {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const response = await fetch(`https://spotbulle-ia.onrender.com/api/ia/videos/${videoId}/analyser`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ia/videos/${videoId}/analyser`, {
         method: 'POST',
         headers
       });
