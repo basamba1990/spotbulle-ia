@@ -14,6 +14,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// Configuration trust proxy pour Render.com
+app.set('trust proxy', true);
+
 // Configuration CORS pour la production
 const corsOptions = {
   origin: function (origin, callback) {
