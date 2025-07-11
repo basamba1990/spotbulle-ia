@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configuration de l'API pour la production
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://spotbulle-ia.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://10000-i8x5si7p653y7yz9s86s8-6fca0c3c.manusvm.computer';
 const MAX_FILE_SIZE = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) || 262144000; // 250MB
 const ENVIRONMENT = process.env.NEXT_PUBLIC_ENV || 'production';
 
