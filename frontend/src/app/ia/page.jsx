@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -529,4 +530,6 @@ function StatistiquesIA() {
     </div>
   );
 }
+
+
 
