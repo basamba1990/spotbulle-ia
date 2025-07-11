@@ -126,20 +126,11 @@ const eventController = {
 
       // Ne montrer que les événements publics si l'utilisateur n'est pas connecté
       if (!req.user) {
-        whereClause.parametres = {
-          public: true
-        };
+        whereClause["parametres.public"] = true;
       }
 
       const { count, rows: events } = await Event.findAndCountAll({
         where: whereClause,
-        include: [
-          {
-            model: User,
-            as: 'organisateur',
-            attributes: ['id', 'nom', 'prenom', 'avatar_url']
-          }
-        ],
         order: [['date_debut', 'ASC']],
         limit: parseInt(limit),
         offset: parseInt(offset)
