@@ -4,7 +4,7 @@ const AnalyseIAService = require("../services/analyseIAService");
 const MiseEnCorrespondanceService = require("../services/miseEnCorrespondanceService");
 const AnalyseIAController = require("../controllers/analyseIAController");
 const MiseEnCorrespondanceController = require("../controllers/miseEnCorrespondanceController");
-const { authMiddleware } = require("../middleware/authMiddleware");
+const { authMiddleware, optionalAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
